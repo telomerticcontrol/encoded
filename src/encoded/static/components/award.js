@@ -2070,8 +2070,8 @@ class Award extends React.Component {
                             <div className="description__columnone">
                                 <dl className="key-value">
                                     <div data-test="projectinfo">
-                                        <dt>NHGRI project information</dt>
-                                        <dd><a href={context.url} title={`${context.name} project page at NHGRI`}>{context.name}</a></dd>
+                                        <dt>NIH Grant</dt>
+                                        <dd><a href={context.url} title={`${context.name} NIH Grant`}>{context.name}</a></dd>
                                     </div>
                                 </dl>
                                 {context.pi && context.pi.lab ?
