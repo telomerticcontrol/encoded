@@ -783,22 +783,6 @@ function StatusData(experiments, unreplicated, isogenic, anisogenic) {
         }
     }
 
-    // const totalLabels = ['proposed', 'started', 'submitted', 'released', 'deleted', 'replaced', 'archived', 'revoked'];
-    // // const labels = ['proposed', 'started', 'submitted', 'released', 'deleted', 'replaced', 'archived', 'revoked'];
-
-    // // if the unreplicatedArray[i].key === labels[j] and the unreplicatedArray[i].doc_count does not equal 0, then add unreplicatedArray[i].key to labels
-    // if (unreplicatedArray.length) {
-    //     for (let j = 0; j < totalLabels.length; j += 1) {
-    //         for (let i = 0; i < unreplicatedArray.length; i += 1) {
-    //             if (unreplicatedArray[i].key === totalLabels[j]) {
-    //                 if (unreplicatedArray[i].doc_count !== 0) {
-    //                     labels.push(unreplicatedArray[i].key);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
     if (unreplicatedArray.length) {
         for (let j = 0; j < labels.length; j += 1) {
             for (let i = 0; i < unreplicatedArray.length; i += 1) {
