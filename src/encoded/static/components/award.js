@@ -8,9 +8,8 @@ import { FetchedData, Param } from './fetched';
 import * as globals from './globals';
 import { ProjectBadge } from './image';
 import { PickerActions } from './search';
-import StatusLabel from './statuslabel';
-
 import { SortTablePanel, SortTable } from './sorttable';
+import StatusLabel from './statuslabel';
 
 const labChartId = 'lab-chart'; // Lab chart <div> id attribute
 const categoryChartId = 'category-chart'; // Assay chart <div> id attribute
@@ -139,7 +138,15 @@ function createDoughnutChart(chartId, values, labels, colors, baseSearchUri, nav
                     onClick: function onClick(e) {
                         // React to clicks on pie sections
                         const activePoints = chart.getElementAtEvent(e);
-
+                        // chart.options.onClick.baseSearchUri is created or altered based on user input of selected Genus Buttons
+                        // Each type of Object (e.g. Experiments, Annotations, Biosample, AntibodyLot) has a unique
+                        //      query string for the corresponding report search -- cannot simply append something
+                        //      to end of baseSearchUri, as baseSearchUri ends with {searchtype}=
+                        //      so, query string specifying genus must end up somewhere in the middle of the string
+                        //      that is baseSearchUri.
+                        // chart.options.onClick.baseSearchUri must be defined in the type of chart (StatusChart, CategoryChart)
+                        //      that is passed to the createDonutChart or createBarChart functions because cannot directly
+                        //      make changes to the param baseSearchUri in updateChart().
                         if (activePoints[0]) { // if click on wrong area, do nothing
                             const clickedElementIndex = activePoints[0]._index;
                             const term = chart.data.labels[clickedElementIndex];
@@ -160,43 +167,38 @@ function createDoughnutChart(chartId, values, labels, colors, baseSearchUri, nav
     });
 }
 
-function createBarChart(chartId, unreplicatedLabel, unreplicatedDataset, isogenicDataset, anisogenicDataset, colors, labels, replicatelabels, baseSearchUri, navigate) {
+/**
+ * Create a stacked bar chart in the div.
+ *
+ * @param {object} chartId - Root HTML id of div to draw the chart into. Supply <divs> with `chartId`-chart for
+//            the chart itself, and `chartId`-legend for its legend.
+ * @param {object} data - Contains arrays of values to chart, array of string labels corresponding to the values (status)
+ * @param {array} colors - Hex colors corresponding to the values.
+ * @param {array} replicateLabels - Array of string labels corresponding to the values (replicate type)
+ * @param {object} baseSearchUri - Base URI to navigate to when clicking a bar chart section or legend item. Clicked
+//                  item label gets appended to it.
+ * @param {object} navigate - Called when when a bar chart section gets clicked. Gets passed the URI to go to. Needed
+//             because this function can't access the navigation function.
+ * @return {promise}
+ */
+function createBarChart(chartId, data, colors, replicateLabels, baseSearchUri, navigate) {
     return new Promise((resolve) => {
         require.ensure(['chart.js'], (require) => {
             const Chart = require('chart.js');
-            const datasets = [{}, {}, {}];
-            if (unreplicatedDataset.some(x => x > 0)) {
-                datasets[0].label = 'unreplicated';
-                datasets[0].data = unreplicatedDataset;
-                datasets[0].backgroundColor = colors[0];
-                if (isogenicDataset.some(x => x > 0)) {
-                    datasets[1].label = 'isogenic';
-                    datasets[1].data = isogenicDataset;
-                    datasets[1].backgroundColor = colors[1];
-                    if (anisogenicDataset.some(x => x > 0)) {
-                        datasets[2].label = 'anisogenic';
-                        datasets[2].data = anisogenicDataset;
-                        datasets[2].backgroundColor = colors[2];
-                    }
-                } else if (isogenicDataset.every(x => x === 0) && anisogenicDataset.some(x => x > 0)) {
-                    datasets[1].label = 'anisogenic';
-                    datasets[1].data = anisogenicDataset;
-                    datasets[1].backgroundColor = colors[1];
-                }
-            } else if (unreplicatedDataset.every(x => x === 0) && isogenicDataset.some(x => x > 0)) {
-                datasets[0].label = 'isogenic';
-                datasets[0].data = isogenicDataset;
-                datasets[0].backgroundColor = colors[0];
-                if (anisogenicDataset.some(x => x > 0)) {
-                    datasets[1].label = 'anisogenic';
-                    datasets[1].data = anisogenicDataset;
-                    datasets[1].backgroundColor = colors[1];
-                }
-            } else if (unreplicatedDataset.every(x => x === 0) && isogenicDataset.every(x => x === 0) && anisogenicDataset.some(x => x > 0)) {
-                datasets[0].label = 'anisogenic';
-                datasets[0].data = anisogenicDataset;
-                datasets[0].backgroundColors = colors[0];
+            const datasets = [];
+            if (data.unreplicatedDataset.some(x => x > 0)) {
+                datasets.push({ label: 'unreplicated', data: data.unreplicatedDataset, backgroundColor: colors[0] });
             }
+            if (data.isogenicDataset.some(x => x > 0)) {
+                datasets.push({ label: 'isogenic', data: data.isogenicDataset, backgroundColor: colors[1] });
+            }
+            if (data.anisogenicDataset.some(x => x > 0)) {
+                datasets.push({ label: 'anisogenic', data: data.anisogenicDataset, backgroundColor: colors[2] });
+            }
+            for (let i = 0; i < datasets.length; i += 1) {
+                datasets[i].backgroundColor = colors[i];
+            }
+
             // Create the chart.
             const canvas = document.getElementById(`${chartId}-chart`);
             const parent = document.getElementById(chartId);
@@ -208,7 +210,7 @@ function createBarChart(chartId, unreplicatedLabel, unreplicatedDataset, isogeni
             const chart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels,
+                    labels: data.labels,
                     datasets,
                 },
                 options: {
@@ -240,15 +242,12 @@ function createBarChart(chartId, unreplicatedLabel, unreplicatedDataset, isogeni
                         duration: 200,
                     },
                     legendCallback: (chartInstance) => {
-                        const chartLabels = replicatelabels;
                         const LegendLabels = [];
                         const dataColors = [];
                         // If data array has value, add to legend
-                        for (let i = 0; i < chartLabels.length; i += 1) {
-                            if (chartInstance.data.datasets[i].data.some(x => x > 0)) {
-                                LegendLabels.push(chartInstance.data.datasets[i].label);
-                                dataColors.push(chartInstance.data.datasets[i].backgroundColor);
-                            }
+                        for (let i = 0; i < datasets.length; i += 1) {
+                            LegendLabels.push(chartInstance.data.datasets[i].label);
+                            dataColors.push(chartInstance.data.datasets[i].backgroundColor);
                         }
                         const text = [];
                         text.push('<ul>');
@@ -271,6 +270,15 @@ function createBarChart(chartId, unreplicatedLabel, unreplicatedDataset, isogeni
                             const clickedElementdataset = activePoints[0]._datasetIndex;
                             const term = chart.data.labels[clickedElementIndex];
                             const item = chart.data.datasets[clickedElementdataset].label;
+                            // chart.options.onClick.baseSearchUri is created or altered based on user input of selected Genus Buttons
+                            // Each type of Object (e.g. Experiments, Annotations, Biosample, AntibodyLot) has a unique
+                            //      query string for the corresponding report search -- cannot simply append something
+                            //      to end of baseSearchUri, as baseSearchUri ends with {searchtype}=
+                            //      so, query string specifying genus must end up somewhere in the middle of the string
+                            //      that is baseSearchUri.
+                            // chart.options.onClick.baseSearchUri must be defined in the type of chart (StatusChart, CategoryChart)
+                            //      that is passed to the createDonutChart or createBarChart functions because cannot directly
+                            //      make changes to the param baseSearchUri in updateChart().
                             if (chart.options.onClick.baseSearchUri) {
                                 navigate(`${chart.options.onClick.baseSearchUri}&status=${globals.encodedURIComponent(term)}&replication_type=${item}`);
                             } else {
@@ -547,6 +555,7 @@ class AntibodyChart extends React.Component {
     // Update existing chart with new data.
     updateChart(chart, facetData) {
         // Extract the non-zero values, and corresponding labels and colors for the data.
+        const { award } = this.props;
         const values = [];
         const labels = [];
         facetData.forEach((item) => {
@@ -556,11 +565,12 @@ class AntibodyChart extends React.Component {
             }
         });
         const colors = labels.map((label, i) => typeSpecificColorList[i % typeSpecificColorList.length]);
-
+        const AntibodyQuery = generateQuery(this.props.selectedOrganisms, 'targets.organism.scientific_name=');
         // Update chart data and redraw with the new data.
         chart.data.datasets[0].data = values;
         chart.data.datasets[0].backgroundColor = colors;
         chart.data.labels = labels;
+        chart.options.onClick.baseSearchUri = `/report/?type=AntibodyLot&award=/awards/${award.name}/${AntibodyQuery}&lot_reviews.status=`;
         chart.update();
 
         // Redraw the updated legend
@@ -568,7 +578,7 @@ class AntibodyChart extends React.Component {
     }
 
     createChart(chartId, facetData) {
-        const { award, categoryFacet } = this.props;
+        const { award, linkUri, categoryFacet } = this.props;
 
         // Extract the non-zero values, and corresponding labels and colors for the data.
         const values = [];
@@ -581,8 +591,7 @@ class AntibodyChart extends React.Component {
         });
         const colors = labels.map((label, i) => typeSpecificColorList[i % typeSpecificColorList.length]);
 
-        // Create the chart.
-        createDoughnutChart(chartId, values, labels, colors, `${award.name}&${categoryFacet}=`, (uri) => { this.context.navigate(uri); })
+        createDoughnutChart(chartId, values, labels, colors, `${linkUri}${award.name}/&${categoryFacet}=`, (uri) => { this.context.navigate(uri); })
             .then((chartInstance) => {
                 // Save the created chart instance.
                 this.chart = chartInstance;
@@ -591,6 +600,7 @@ class AntibodyChart extends React.Component {
 
     render() {
         const { categoryData, ident, award } = this.props;
+        const AntibodyQuery = generateQuery(this.props.selectedOrganisms, 'targets.organism.scientific_name=');
 
         // Calculate a (hopefully) unique ID to put on the DOM elements.
         const id = `${categoryChartId}-${ident}`;
@@ -599,7 +609,7 @@ class AntibodyChart extends React.Component {
             <div className="reagent-charts__chart">
                 <div className="reagent-charts__title">
                     Antibodies {categoryData.length ?
-                    <a className="btn btn-info btn-xs reagentsreporttitle" href={`/report/?type=AntibodyLot&award=${award['@id']}&field=accession&field=lot_reviews.status&field=lot_reviews.targets.label&field=lot_reviews.targets.organism.scientific_name&field=source.title&field=product_id&field=lot_id&field=date_created`} title="View tabular report"><svg id="Table" data-name="Table" xmlns="http://www.w3.org/2000/svg" width="29" height="17" viewBox="0 0 29 17" className="svg-icon svg-icon-table"><title>table-tab-icon </title><path d="M22,0H0V17H29V0H22ZM21,4.33V8H15V4.33h6ZM15,9h6v3H15V9Zm-1,3H8V9h6v3Zm0-7.69V8H8V4.33h6Zm-13,0H7V8H1V4.33ZM1,9H7v3H1V9Zm0,7V13H7v3H1Zm7,0V13h6v3H8Zm7,0V13h6v3H15Zm13,0H22V13h6v3Zm0-4H22V9h6v3Zm0-4H22V4.33h6V8Z" /></svg></a>
+                    <a className="btn btn-info btn-xs reagentsreporttitle" href={`/report/?type=AntibodyLot&${AntibodyQuery}&award=${award['@id']}&field=accession&field=lot_reviews.status&field=lot_reviews.targets.label&field=lot_reviews.targets.organism.scientific_name&field=source.title&field=product_id&field=lot_id&field=date_created`} title="View tabular report"><svg id="Table" data-name="Table" xmlns="http://www.w3.org/2000/svg" width="29" height="17" viewBox="0 0 29 17" className="svg-icon svg-icon-table"><title>table-tab-icon </title><path d="M22,0H0V17H29V0H22ZM21,4.33V8H15V4.33h6ZM15,9h6v3H15V9Zm-1,3H8V9h6v3Zm0-7.69V8H8V4.33h6Zm-13,0H7V8H1V4.33ZM1,9H7v3H1V9Zm0,7V13H7v3H1Zm7,0V13h6v3H8Zm7,0V13h6v3H15Zm13,0H22V13h6v3Zm0-4H22V9h6v3Zm0-4H22V4.33h6V8Z" /></svg></a>
                     :
                     null}
                     </div>
@@ -625,6 +635,8 @@ AntibodyChart.propTypes = {
     categoryData: PropTypes.array.isRequired, // Type-specific data to display in a chart
     categoryFacet: PropTypes.string.isRequired, // Add to linkUri to link to matrix facet item
     ident: PropTypes.string.isRequired, // Unique identifier to `id` the charts
+    linkUri: PropTypes.string.isRequired,
+    selectedOrganisms: PropTypes.array.isRequired,
 };
 
 AntibodyChart.contextTypes = {
@@ -752,7 +764,17 @@ BiosampleChart.contextTypes = {
     navigate: PropTypes.func,
 };
 
-// Function to be called in createChart and updateChart of class StatusExperimentChart, creates arrays for chart data
+/**
+ * Function to be called in createChart and updateChart of class StatusExperimentChart, creates arrays for chart data.
+ *
+ * @param {object} experiments - Fetched data for experiments in Award
+ * @param {object} unreplicated - Experiment search with specific replication_type unreplicated
+ * @param {array} isogenic - Experiment search with specific replication_type isogenic
+ * @param {array} anisogenic - Experiment search with specific replication_type anisogenic
+ * @return {object} - with labels (for status -- x-axis of bar chart), unreplicatedDataset, isogenicDataset, anisogenicDataset
+//              to be passed to the createChart function
+ */
+
 function StatusData(experiments, unreplicated, isogenic, anisogenic) {
     let unreplicatedArray;
     let isogenicArray;
@@ -765,6 +787,7 @@ function StatusData(experiments, unreplicated, isogenic, anisogenic) {
     const anisogenicLabel = [];
     let anisogenicDataset = [];
 
+    // Find status in facets for each replicate type (unreplicated, isogenic, anisogenic) search
     if (experiments && experiments.facets && experiments.facets.length) {
         const unreplicatedFacet = unreplicated.facets.find(facet => facet.field === 'status');
         const isogenicFacet = isogenic.facets.find(facet => facet.field === 'status');
@@ -783,6 +806,11 @@ function StatusData(experiments, unreplicated, isogenic, anisogenic) {
         }
     }
 
+    // Check existence of data for each of the keys in array labels
+    // Ensures that for each replicate type there exists the same set of labels and the corresponding data values (in order)
+    //      so that it can be easily and accurately passed to chart.js in createBarChart
+    //      First pushes anything that has a key in labels, then sorts the dataset
+    //      If the array has no length, just push an array with 0 values
     if (unreplicatedArray.length) {
         for (let j = 0; j < labels.length; j += 1) {
             for (let i = 0; i < unreplicatedArray.length; i += 1) {
@@ -837,7 +865,7 @@ function StatusData(experiments, unreplicated, isogenic, anisogenic) {
     } else {
         anisogenicDataset = [0, 0, 0, 0, 0, 0, 0, 0];
     }
-    return ([labels, unreplicatedLabel, unreplicatedDataset, isogenicDataset, anisogenicDataset]);
+    return ({ labels, unreplicatedDataset, isogenicDataset, anisogenicDataset });
 }
 
 class ControlsChart extends React.Component {
@@ -982,53 +1010,80 @@ class StatusExperimentChart extends React.Component {
 
     updateChart(chart) {
         const { experiments, unreplicated, isogenic, anisogenic, linkUri, award, objectQuery } = this.props;
-        const data = StatusData(experiments, unreplicated, isogenic, anisogenic); // Array of datasets and labels
+        // Object with arrays of status labels, unreplicatedDataset, isogenicDataset, anisogenicDataset
+        const data = StatusData(experiments, unreplicated, isogenic, anisogenic);
         const replicatelabels = ['unreplicated', 'isogenic', 'anisogenic'];
         const colors = replicatelabels.map((label, i) => statusColorList[i % statusColorList.length]);
-        const unreplicatedDataset = data[2];
-        const isogenicDataset = data[3];
-        const anisogenicDataset = data[4];
-        if (unreplicatedDataset.some(x => x > 0)) {
+        // Must specify each case of data availability - must remove available, data-less chart.data.datasets
+        // Ensures that the colors will be the default and legend labels does not include unnecessary strings
+        if (data.unreplicatedDataset.some(x => x > 0)) {
             chart.data.datasets[0].label = 'unreplicated';
-            chart.data.datasets[0].data = unreplicatedDataset;
+            chart.data.datasets[0].data = data.unreplicatedDataset;
             chart.data.datasets[0].backgroundColor = colors[0];
-            if (isogenicDataset.some(x => x > 0)) {
+            if (data.isogenicDataset.some(x => x > 0)) {
                 chart.data.datasets[1].label = 'isogenic';
-                chart.data.datasets[1].data = isogenicDataset;
+                chart.data.datasets[1].data = data.isogenicDataset;
                 chart.data.datasets[1].backgroundColor = colors[1];
-                if (anisogenicDataset.some(x => x > 0)) {
+                if (data.anisogenicDataset.some(x => x > 0)) {
                     chart.data.datasets[2].label = 'anisogenic';
-                    chart.data.datasets[2].data = anisogenicDataset;
+                    chart.data.datasets[2].data = data.anisogenicDataset;
                     chart.data.datasets[2].backgroundColor = colors[2];
-                } else if (anisogenicDataset.every(x => x === 0)) {
+                } else if (data.anisogenicDataset.every(x => x === 0)) {
                     chart.data.datasets[2] = {};
                 }
-            } else if (isogenicDataset.every(x => x === 0) && anisogenicDataset.some(x => x > 0)) {
+            } else if (data.isogenicDataset.every(x => x === 0) && data.anisogenicDataset.some(x => x > 0)) {
                 chart.data.datasets[1].label = 'anisogenic';
-                chart.data.datasets[1].data = anisogenicDataset;
+                chart.data.datasets[1].data = data.anisogenicDataset;
                 chart.data.datasets[1].backgroundColor = colors[1];
                 chart.data.datasets[2] = {};
             }
-        } else if (unreplicatedDataset.every(x => x === 0) && isogenicDataset.some(x => x > 0)) {
+        } else if (data.unreplicatedDataset.every(x => x === 0) && data.isogenicDataset.some(x => x > 0)) {
             chart.data.datasets[0].label = 'isogenic';
-            chart.data.datasets[0].data = isogenicDataset;
+            chart.data.datasets[0].data = data.isogenicDataset;
             chart.data.datasets[0].backgroundColor = colors[0];
-            if (anisogenicDataset.some(x => x > 0)) {
+            if (data.anisogenicDataset.some(x => x > 0)) {
                 chart.data.datasets[1].label = 'anisogenic';
-                chart.data.datasets[1].data = anisogenicDataset;
+                chart.data.datasets[1].data = data.anisogenicDataset;
                 chart.data.datasets[1].backgroundColor = colors[1];
                 chart.data.datasets[2] = {};
-            } else if (anisogenicDataset.every(x => x === 0)) {
+            } else if (data.anisogenicDataset.every(x => x === 0)) {
                 chart.data.datasets[1] = {};
                 chart.data.datasets[2] = {};
             }
-        } else if (unreplicatedDataset.every(x => x === 0) && isogenicDataset.every(x => x === 0) && anisogenicDataset.some(x => x > 0)) {
+        } else if (data.unreplicatedDataset.every(x => x === 0) && data.isogenicDataset.every(x => x === 0) && data.anisogenicDataset.some(x => x > 0)) {
             chart.data.datasets[0].label = 'anisogenic';
-            chart.data.datasets[0].data = anisogenicDataset;
+            chart.data.datasets[0].data = data.anisogenicDataset;
             chart.data.datasets[0].backgroundColors = colors[0];
             chart.data.datasets[1] = {};
             chart.data.datasets[2] = {};
         }
+        // if (data.unreplicatedDataset.some(x => x > 0)) {
+        //     chart.data.datasets[0] = { label: 'unreplicated', data: data.unreplicatedDataset, backgroundColor: colors[0] };
+        //     if (data.isogenicDataset.some(x => x > 0)) {
+        //         chart.data.datasets[1] = { label: 'isogenic', data: data.isogenicDataset, backgroundColor: colors[1] };
+        //         if (data.anisogenicDataset.some(x => x > 0)) {
+        //             chart.data.datasets[2] = { label: 'anisogenic', data: data.anisogenicDataset, backgroundColor: colors[2] };
+        //         } else if (data.anisogenicDataset.every(x => x === 0)) {
+        //             chart.data.datasets[2] = {};
+        //         }
+        //     } else if (data.isogenicDataset.every(x => x === 0) && data.anisogenicDataset.some(x => x > 0)) {
+        //         chart.data.datasets[1] = { label: 'anisogenic', data: data.anisogenicDataset, backgroundColor: colors[1] };
+        //         chart.data.datasets[2] = {};
+        //     }
+        // } else if (data.unreplicatedDataset.every(x => x === 0) && data.isogenicDataset.some(x => x > 0)) {
+        //     chart.data.datasets[0] = { label: 'isogenic', data: data.isogenicDataset, backgroundColor: colors[0] };
+        //     if (data.anisogenicDataset.some(x => x > 0)) {
+        //         chart.data.datasets[1] = { label: 'anisogenic', data: data.anisogenicDataset, backgroundColor: colors[1] };
+        //         chart.data.datasets[2] = {};
+        //     } else if (data.anisogenicDataset.every(x => x === 0)) {
+        //         chart.data.datasets[1] = {};
+        //         chart.data.datasets[2] = {};
+        //     }
+        // } else if (data.unreplicatedDataset.every(x => x === 0) && data.isogenicDataset.every(x => x === 0) && data.anisogenicDataset.some(x => x > 0)) {
+        //     chart.data.datasets[0] = { label: 'anisogenic', data: data.anisogenicDataset, backgroundColor: colors[1] };
+        //     chart.data.datasets[1] = {};
+        //     chart.data.datasets[2] = {};
+        // }
         chart.options.onClick.baseSearchUri = `${linkUri}${award.name}${objectQuery}`;
         chart.update();
 
@@ -1037,16 +1092,12 @@ class StatusExperimentChart extends React.Component {
 
     createChart(chartId) {
         const { experiments, unreplicated, isogenic, anisogenic } = this.props;
-        const data = StatusData(experiments, unreplicated, isogenic, anisogenic); // Array of datasets and labels
-        const labels = data[0];
-        const statusLabel = data[1];
-        const unreplicatedDataset = data[2];
-        const isogenicDataset = data[3];
-        const anisogenicDataset = data[4];
+        // Object with arrays of status labels, unreplicatedDataset, isogenicDataset, anisogenicDataset
+        const data = StatusData(experiments, unreplicated, isogenic, anisogenic);
         const replicatelabels = ['unreplicated', 'isogenic', 'anisogenic'];
         const colors = replicatelabels.map((label, i) => statusColorList[i % statusColorList.length]);
 
-        createBarChart(chartId, statusLabel, unreplicatedDataset, isogenicDataset, anisogenicDataset, colors, labels, replicatelabels, `${this.props.linkUri}${this.props.award.name}`, (uri) => { this.context.navigate(uri); })
+        createBarChart(chartId, data, colors, replicatelabels, `${this.props.linkUri}${this.props.award.name}`, (uri) => { this.context.navigate(uri); })
             .then((chartInstance) => {
                 // Save the created chart instance.
                 this.chart = chartInstance;
@@ -1218,6 +1269,22 @@ StatusChart.contextTypes = {
     navigate: PropTypes.func,
 };
 
+// The existing species are added to the array of species
+function generateUpdatedSpeciesArray(categories, query, updatedSpeciesArray) {
+    let categorySpeciesArray;
+    if (categories && categories.facets && categories.facets.length) {
+        const genusFacet = categories.facets.find(facet => facet.field === query);
+        categorySpeciesArray = (genusFacet && genusFacet.terms && genusFacet.terms.length) ? genusFacet.terms : [];
+        const categorySpeciesArrayLength = categorySpeciesArray.length;
+        for (let j = 0; j < categorySpeciesArrayLength; j += 1) {
+            if (categorySpeciesArray[j].doc_count !== 0) {
+                updatedSpeciesArray.push(categorySpeciesArray[j].key);
+            }
+        }
+    }
+    return updatedSpeciesArray;
+}
+
 const ChartRenderer = (props) => {
     const { award, experiments, annotations, antibodies, biosamples, handleClick, selectedOrganisms, unreplicated, isogenic, anisogenic, controls } = props;
 
@@ -1255,7 +1322,6 @@ const ChartRenderer = (props) => {
             uriBase: '/search/?type=Biosample&award.name=',
             linkUri: '/report/?type=Biosample&award.name=',
         },
-
         antibodies: {
             ident: 'antibodies',
             data: [],
@@ -1267,7 +1333,6 @@ const ChartRenderer = (props) => {
             uriBase: 'type=AntibodyLot&award=/awards',
             linkUri: '/report/?type=AntibodyLot&award=/awards/',
         },
-
         controls: {
             ident: 'experiments',
             data: [],
@@ -1301,11 +1366,7 @@ const ChartRenderer = (props) => {
     const biosamplesConfig = searchData.biosamples;
     const antibodiesConfig = searchData.antibodies;
     const controlsConfig = searchData.controls;
-    let experimentSpeciesArray;
-    let annotationSpeciesArray;
-    let biosampleSpeciesArray;
-    let antibodySpeciesArray;
-    // let controlSpeciesArray;
+    let updatedGenusArray;
     const updatedSpeciesArray = [];
     searchData.experiments.data = (experiments && experiments.facets) || [];
     searchData.annotations.data = (annotations && annotations.facets) || [];
@@ -1328,52 +1389,15 @@ const ChartRenderer = (props) => {
             searchData[chartCategory].statuses = (statusFacet && statusFacet.terms && statusFacet.terms.length) ? statusFacet.terms : [];
         }
     });
-    // If there are experiements, then the corresponding species are added to the array of species
-    if (experiments && experiments.facets && experiments.facets.length) {
-        const genusFacet = experiments.facets.find(facet => facet.field === 'replicates.library.biosample.donor.organism.scientific_name');
-        experimentSpeciesArray = (genusFacet && genusFacet.terms && genusFacet.terms.length) ? genusFacet.terms : [];
-        const experimentSpeciesArrayLength = experimentSpeciesArray.length;
-        for (let j = 0; j < experimentSpeciesArrayLength; j += 1) {
-            if (experimentSpeciesArray[j].doc_count !== 0) {
-                updatedSpeciesArray.push(experimentSpeciesArray[j].key);
-            }
-        }
-    }
-    // If there are annotations, then the corresponding species are added to the array of species
-    if (annotations && annotations.facets && annotations.facets.length) {
-        const genusFacet = annotations.facets.find(facet => facet.field === 'organism.scientific_name');
-        annotationSpeciesArray = (genusFacet && genusFacet.terms && genusFacet.terms.length) ? genusFacet.terms : [];
-        const annotationSpeciesArrayLength = annotationSpeciesArray.length;
-        for (let j = 0; j < annotationSpeciesArrayLength; j += 1) {
-            if (annotationSpeciesArray[j].doc_count !== 0) {
-                updatedSpeciesArray.push(annotationSpeciesArray[j].key);
-            }
-        }
-    }
-    // If there are biosamples, then the corresponding species are iadded to the array of species
-    if (biosamples && biosamples.facets && biosamples.facets.length) {
-        const genusFacet = biosamples.facets.find(facet => facet.field === 'organism.scientific_name=');
-        biosampleSpeciesArray = (genusFacet && genusFacet.terms && genusFacet.terms.length) ? genusFacet.terms : [];
-        const biosampleSpeciesArrayLength = biosampleSpeciesArray.length;
-        for (let j = 0; j < biosampleSpeciesArrayLength; j += 1) {
-            if (biosampleSpeciesArray[j].doc_count !== 0) {
-                updatedSpeciesArray.push(biosampleSpeciesArray[j].key);
-            }
-        }
-    }
-    // If there are antibodies, then the corresponding species are added to the array of species
-    if (antibodies && antibodies.facets && antibodies.facets.length) {
-        const genusFacet = antibodies.facets.find(facet => facet.field === 'targets.organism.scientific_name=');
-        antibodySpeciesArray = (genusFacet && genusFacet.terms && genusFacet.terms.length) ? genusFacet.terms : [];
-        const antibodySpeciesArrayLength = antibodySpeciesArray.length;
-        for (let j = 0; j < antibodySpeciesArrayLength; j += 1) {
-            if (antibodySpeciesArray[j].doc_count !== 0) {
-                updatedSpeciesArray.push(antibodySpeciesArray[j].key);
-            }
-        }
-    }
+
+    // For each category (experiments, annotations, biosamples, and antibodies), the corresponding species are added to the array of species
+    generateUpdatedSpeciesArray(experiments, 'replicates.library.biosample.donor.organism.scientific_name', updatedSpeciesArray);
+    generateUpdatedSpeciesArray(annotations, 'organism.scientific_name', updatedSpeciesArray);
+    generateUpdatedSpeciesArray(biosamples, 'organism.scientific_name=', updatedSpeciesArray);
+    generateUpdatedSpeciesArray(antibodies, 'targets.organism.scientific_name=', updatedSpeciesArray);
+
     // Array of species is converted to an array of genera
-    let updatedGenusArray = updatedSpeciesArray.map(species => speciesGenusMap[species]);
+    updatedGenusArray = updatedSpeciesArray.map(species => speciesGenusMap[species]);
 
     // Array of genera is deduplicated
     updatedGenusArray = _.uniq(updatedGenusArray);
@@ -1428,7 +1452,7 @@ const ChartRenderer = (props) => {
                 </div>
                 <div className="award-chart__group-wrapper">
                     <h2>Annotations {annotationsConfig.labs.length ?
-                    <a className="btn btn-info btn-sm reporttitle" href={`/report/?type=Annotation&award.name=${award.name}`} title="View tabular report"><svg id="Table" data-name="Table" xmlns="http://www.w3.org/2000/svg" width="29" height="17" viewBox="0 0 29 17" className="svg-icon svg-icon-table"><title>table-tab-icon </title><path d="M22,0H0V17H29V0H22ZM21,4.33V8H15V4.33h6ZM15,9h6v3H15V9Zm-1,3H8V9h6v3Zm0-7.69V8H8V4.33h6Zm-13,0H7V8H1V4.33ZM1,9H7v3H1V9Zm0,7V13H7v3H1Zm7,0V13h6v3H8Zm7,0V13h6v3H15Zm13,0H22V13h6v3Zm0-4H22V9h6v3Zm0-4H22V4.33h6V8Z" /></svg></a>
+                    <a className="btn btn-info btn-sm reporttitle" href={`/report/?type=Annotation&${AnnotationQuery}&award.name=${award.name}`} title="View tabular report"><svg id="Table" data-name="Table" xmlns="http://www.w3.org/2000/svg" width="29" height="17" viewBox="0 0 29 17" className="svg-icon svg-icon-table"><title>table-tab-icon </title><path d="M22,0H0V17H29V0H22ZM21,4.33V8H15V4.33h6ZM15,9h6v3H15V9Zm-1,3H8V9h6v3Zm0-7.69V8H8V4.33h6Zm-13,0H7V8H1V4.33ZM1,9H7v3H1V9Zm0,7V13H7v3H1Zm7,0V13h6v3H8Zm7,0V13h6v3H15Zm13,0H22V13h6v3Zm0-4H22V9h6v3Zm0-4H22V4.33h6V8Z" /></svg></a>
                     : null}</h2>
                     {annotationsConfig.labs.length ?
                         <div>
@@ -1517,6 +1541,7 @@ ChartRenderer.propTypes = {
     controls: PropTypes.object,
     handleClick: PropTypes.func.isRequired, // Function to call when a button is clicked
     selectedOrganisms: PropTypes.array, // Array of currently selected buttons
+    // updatedSpeciesArray: PropTypes.array,
 };
 
 ChartRenderer.defaultProps = {
@@ -1529,6 +1554,7 @@ ChartRenderer.defaultProps = {
     anisogenic: {},
     controls: {},
     selectedOrganisms: [],
+    // updatedSpeciesArray: [],
 };
 
 // Create new tabdisplay of genus buttons
@@ -1608,18 +1634,16 @@ MilestonesTable.propTypes = {
 // Overall component to render the cumulative line chart
 const ExperimentDate = (props) => {
     const { experiments, award } = props;
-    let dateReleasedArray = [];
-    let dateSubmittedArray = [];
-    const deduplicatedreleased = {};
-    const deduplicatedsubmitted = {};
-    let label = [];
-    let data = [];
-    let cumulativedatasetReleased = [];
-    let cumulativedatasetSubmitted = [];
-    let accumulatorreleased = 0;
-    let accumulatorsubmitted = 0;
-    let monthreleaseddiff = 0;
-    let monthsubmitteddiff = 0;
+    let releasedDates = [];
+    let submittedDates = [];
+    let deduplicatedreleased = {};
+    let deduplicatedsubmitted = {};
+    const cumulativedatasetReleased = [];
+    const cumulativedatasetSubmitted = [];
+    const accumulatorreleased = 0;
+    const accumulatorsubmitted = 0;
+    const monthreleaseddiff = 0;
+    const monthsubmitteddiff = 0;
     const fillreleasedDates = [];
     const fillsubmittedDates = [];
 
@@ -1627,155 +1651,101 @@ const ExperimentDate = (props) => {
     if (experiments && experiments.facets && experiments.facets.length) {
         const monthReleasedFacet = experiments.facets.find(facet => facet.field === 'month_released');
         const dateSubmittedFacet = experiments.facets.find(facet => facet.field === 'date_submitted');
-        dateReleasedArray = (monthReleasedFacet && monthReleasedFacet.terms && monthReleasedFacet.terms.length) ? monthReleasedFacet.terms : [];
-        dateSubmittedArray = (dateSubmittedFacet && dateSubmittedFacet.terms && dateSubmittedFacet.terms.length) ? dateSubmittedFacet.terms : [];
+        releasedDates = (monthReleasedFacet && monthReleasedFacet.terms && monthReleasedFacet.terms.length) ? monthReleasedFacet.terms : [];
+        submittedDates = (dateSubmittedFacet && dateSubmittedFacet.terms && dateSubmittedFacet.terms.length) ? dateSubmittedFacet.terms : [];
     }
 
-    // Use Moment to format arrays of submitted and released date
-    const standardreleasedTerms = dateReleasedArray.map((term) => {
-        const standardDate = moment(term.key, ['MMMM, YYYY', 'YYYY-MM']).format('YYYY-MM');
-        return { key: standardDate, doc_count: term.doc_count };
-    });
-
-    const standardsubmittedTerms = dateSubmittedArray.map((term) => {
-        const standardDate = moment(term.key, ['MMMM, YYYY', 'YYYY-MM']).format('YYYY-MM');
-        return { key: standardDate, doc_count: term.doc_count };
-    });
-
-    // Sort arrays chronologically
-    const sortedreleasedTerms = standardreleasedTerms.sort((termA, termB) => {
-        if (termA.key < termB.key) {
-            return -1;
-        } else if (termB.key < termA.key) {
-            return 1;
+    function sortTerms(dateArray) {
+        // Use Moment to format arrays of submitted and released date
+        const standardTerms = dateArray.map((term) => {
+            const standardDate = moment(term.key, ['MMMM, YYYY', 'YYYY-MM']).format('YYYY-MM');
+            return { key: standardDate, doc_count: term.doc_count };
+        });
+        // Sort arrays chronologically
+        const sortedTerms = standardTerms.sort((termA, termB) => {
+            if (termA.key < termB.key) {
+                return -1;
+            } else if (termB.key < termA.key) {
+                return 1;
+            }
+            return 0;
+        });
+        return (
+            sortedTerms
+        );
+    }
+    function fillDates(sortedArray, fillArray, difference, deduplicated) {
+        let monthdiff = difference;
+        // Add an object with the award start date to both arrays
+        sortedArray.unshift({ key: award.start_date, doc_count: 0 });
+        // Add objects to the array with doc_count 0 for the missing months
+        const sortedTermsLength = sortedArray.length;
+        for (let j = 0; j < sortedTermsLength - 1; j += 1) {
+            fillArray.push(sortedArray[j]);
+            const startDate = moment(sortedArray[j].key);
+            const endDate = moment(sortedArray[j + 1].key);
+            monthdiff = endDate.diff(startDate, 'months', false);
+            if (monthdiff > 1) {
+                for (let i = 0; i < monthdiff; i += 1) {
+                    fillArray.push({ key: startDate.add(1, 'months').format('YYYY-MM'), doc_count: 0 });
+                }
+            }
         }
-        return 0;
-    });
-    const sortedsubmittedTerms = standardsubmittedTerms.sort((termA, termB) => {
-        if (termA.key < termB.key) {
-            return -1;
-        } else if (termB.key < termA.key) {
-            return 1;
+        fillArray.push(sortedArray[sortedArray - 1]);
+        // Remove any objects with keys before the start date of the award
+        const arrayLength = fillArray.length;
+        const assayStart = award.start_date;
+        const shortenedArray = [];
+        for (let j = 0; j < arrayLength - 2; j += 1) {
+            if (moment(fillArray[j].key).isSameOrAfter(assayStart, 'date')) {
+                shortenedArray.push(fillArray[j]);
+            }
         }
-        return 0;
-    });
+        const formatTerms = shortenedArray.map((term) => {
+            const formattedDate = moment(term.key, ['YYYY-MM']).format('MMM YY');
+            return { key: formattedDate, doc_count: term.doc_count };
+        });
+        // Deduplicate dates
+        formatTerms.forEach((elem) => {
+            if (deduplicated[elem.key]) {
+                deduplicated[elem.key] += elem.doc_count;
+            } else {
+                deduplicated[elem.key] = elem.doc_count;
+            }
+        });
+        return (deduplicated);
+    }
+    function createDataset(deduplicated, accumulatorType, cumulativeData) {
+        let cumulativedataset = cumulativeData;
+        let accumulator = accumulatorType;
+        // Create an array of data from objects' doc_counts
+        const dataset = Object.keys(deduplicated).map(item => deduplicated[item]);
+        // Make the data cumulative
+        const accumulatedData = dataset.map((term) => {
+            accumulator += term;
+            cumulativedataset = accumulator;
+            return cumulativedataset;
+        });
+        return (accumulatedData);
+    }
 
+
+    const sortedsubmittedTerms = sortTerms(releasedDates);
+    const sortedreleasedTerms = sortTerms(submittedDates);
     // Add an object with the most current date to one of the arrays
-    if ((dateReleasedArray && dateReleasedArray.length) && (dateSubmittedArray && dateSubmittedArray.length)) {
+    if ((releasedDates && releasedDates.length) && (submittedDates && submittedDates.length)) {
         if (moment(sortedsubmittedTerms[sortedsubmittedTerms.length - 1].key).isAfter(sortedreleasedTerms[sortedreleasedTerms.length - 1].key, 'date')) {
             sortedreleasedTerms.push({ key: sortedsubmittedTerms[sortedsubmittedTerms.length - 1].key, doc_count: 0 });
         } else if (moment(sortedsubmittedTerms[sortedsubmittedTerms.length - 1].key).isBefore(sortedreleasedTerms[sortedreleasedTerms.length - 1].key, 'date')) {
             sortedsubmittedTerms.push({ key: sortedreleasedTerms[sortedreleasedTerms.length - 1].key, doc_count: 0 });
         }
     }
-
-    // Add an object with the award start date to both arrays
-    sortedsubmittedTerms.unshift({ key: award.start_date, doc_count: 0 });
-    sortedreleasedTerms.unshift({ key: award.start_date, doc_count: 0 });
-
-    // Add objects to the array with doc_count 0 for the missing months
-    const sortedreleasedTermsLength = sortedreleasedTerms.length;
-    for (let j = 0; j < sortedreleasedTermsLength - 1; j += 1) {
-        fillreleasedDates.push(sortedreleasedTerms[j]);
-        const startDate = moment(sortedreleasedTerms[j].key);
-        const endDate = moment(sortedreleasedTerms[j + 1].key);
-        monthreleaseddiff = endDate.diff(startDate, 'months', false);
-        if (monthreleaseddiff > 1) {
-            for (let i = 0; i < monthreleaseddiff; i += 1) {
-                fillreleasedDates.push({ key: startDate.add(1, 'months').format('YYYY-MM'), doc_count: 0 });
-            }
-        }
-    }
-    fillreleasedDates.push(sortedreleasedTerms[sortedreleasedTerms - 1]);
-
-    const sortedsubmittedTermsLength = sortedsubmittedTerms.length;
-    for (let j = 0; j < sortedsubmittedTermsLength - 1; j += 1) {
-        fillsubmittedDates.push(sortedsubmittedTerms[j]);
-        const startDate = moment(sortedsubmittedTerms[j].key);
-        const endDate = moment(sortedsubmittedTerms[j + 1].key);
-        monthsubmitteddiff = endDate.diff(startDate, 'months', false);
-        if (monthsubmitteddiff > 1) {
-            for (let i = 0; i < monthsubmitteddiff; i += 1) {
-                fillsubmittedDates.push({ key: startDate.add(1, 'months').format('YYYY-MM'), doc_count: 0 });
-            }
-        }
-    }
-    fillsubmittedDates.push(sortedsubmittedTerms[sortedsubmittedTermsLength - 1]);
-
-    // Remove any objects with keys before the start date of the award
-    const arrayreleasedLength = fillreleasedDates.length;
-    const arraysubmittedLength = fillsubmittedDates.length;
-    const assayreleasedStart = award.start_date;
-    const shortenedreleasedArray = [];
-    const shortenedsubmittedArray = [];
-    for (let j = 0; j < arrayreleasedLength - 2; j += 1) {
-        if (moment(fillreleasedDates[j].key).isSameOrAfter(assayreleasedStart, 'date')) {
-            shortenedreleasedArray.push(fillreleasedDates[j]);
-        }
-    }
-    for (let j = 0; j < arraysubmittedLength - 2; j += 1) {
-        if (moment(fillsubmittedDates[j].key).isSameOrAfter(assayreleasedStart, 'date')) {
-            shortenedsubmittedArray.push(fillsubmittedDates[j]);
-        }
-    }
-
-    const formatreleasedTerms = shortenedreleasedArray.map((term) => {
-        const formattedDate = moment(term.key, ['YYYY-MM']).format('MMM YY');
-        return { key: formattedDate, doc_count: term.doc_count };
-    });
-
-    const formatsubmittedTerms = shortenedsubmittedArray.map((term) => {
-        const formattedDate = moment(term.key, ['YYYY-MM']).format('MMM YY');
-        return { key: formattedDate, doc_count: term.doc_count };
-    });
-
-    // Deduplicate dates
-    formatreleasedTerms.forEach((elem) => {
-        if (deduplicatedreleased[elem.key]) {
-            deduplicatedreleased[elem.key] += elem.doc_count;
-        } else {
-            deduplicatedreleased[elem.key] = elem.doc_count;
-        }
-    });
-
-    formatsubmittedTerms.forEach((elem) => {
-        if (deduplicatedsubmitted[elem.key]) {
-            deduplicatedsubmitted[elem.key] += elem.doc_count;
-        } else {
-            deduplicatedsubmitted[elem.key] = elem.doc_count;
-        }
-    });
-
-
+    deduplicatedreleased = fillDates(sortedreleasedTerms, fillreleasedDates, monthreleaseddiff, deduplicatedreleased);
+    deduplicatedsubmitted = fillDates(sortedsubmittedTerms, fillsubmittedDates, monthsubmitteddiff, deduplicatedsubmitted);
     // Create an array of dates
-    const date = Object.keys(deduplicatedreleased).map((term) => {
-        label = term;
-        return label;
-    });
-
-    // Create an array of data from objects' doc_counts
-    const datasetreleased = Object.keys(deduplicatedreleased).map((item) => {
-        label = item;
-        data = deduplicatedreleased[label];
-        return data;
-    });
-    const datasetsubmitted = Object.keys(deduplicatedsubmitted).map((item) => {
-        label = item;
-        data = deduplicatedsubmitted[label];
-        return data;
-    });
-
-    // Make the data cumulative
-    const accumulatedDataReleased = datasetreleased.map((term) => {
-        accumulatorreleased += term;
-        cumulativedatasetReleased = accumulatorreleased;
-        return cumulativedatasetReleased;
-    });
-    const accumulatedDataSubmitted = datasetsubmitted.map((term) => {
-        accumulatorsubmitted += term;
-        cumulativedatasetSubmitted = accumulatorsubmitted;
-        return cumulativedatasetSubmitted;
-    });
+    const date = Object.keys(deduplicatedreleased).map(term => term);
+    const accumulatedDataReleased = createDataset(deduplicatedreleased, accumulatorreleased, cumulativedatasetReleased);
+    const accumulatedDataSubmitted = createDataset(deduplicatedsubmitted, accumulatorsubmitted, cumulativedatasetSubmitted);
 
     return (
         <div>
