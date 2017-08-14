@@ -1048,68 +1048,49 @@ def matrix(context, request):
     # their matrix search results in 'bucket' arrays, with the exact terms being defined in the
     # .py file for the object we're querying in the object's 'matrix' property.
     #
-    # matrix (dict): 'matrix' object within the Elasticsearch matrix search results, containing
+    # matrix (dictionary): 'matrix' object within the Elasticsearch matrix search results, containing
     #        all the data to render the matrix and its headers, but not the facets that appear
     #        along the top and bottom.
-    # x_buckets (dict): 'x' object within the Elasticsearch matrix search results, containing the
-    #        headers that give titles to each column of the chart, as well as summary counts we
-    #        don't currently use on the front end.
-    # target_mode (bool): True if a target matrix has been requested, as opposed to an assay
-    #        matrix.
-    # bucket_term (str): Identifies the term in x_buckets to look for when we have a hierarchical
-    #        structure in x_buckets.
+    # x_buckets (dictionary): 'x' object within the Elasticsearch matrix search results, containing
+    #        the headers that give titles to each column of the chart, as well as summary counts
+    #        we don't currently use on the front end.
     # outer_bucket (list): search result bucket containing the first term in 'grouping_fields'. As
     #        we dig deeper into the buckets recursively, this parameter exists at the depth we're
     #        converting.
     # grouping_fields (list): Strings that outline the hierarchy of terms we dig through within the
     #        buckets. Once we get to a single element within the recursive loop, we convert the
     #        data we find there.
-    def summarize_buckets(matrix, x_buckets, target_mode, bucket_term, outer_bucket,
-                          grouping_fields):
+    def summarize_buckets(matrix, x_buckets, outer_bucket, grouping_fields):
         # Loop by recursion through grouping_fields until we get the terminal grouping field. So
         # get the initial grouping field in the list and save the rest for the recursive call.
         group_by = grouping_fields[0]
-        grouping_fields_remaining = grouping_fields[1:]
-        if not grouping_fields_remaining:
+        grouping_fields = grouping_fields[1:]
+        if not grouping_fields:
             # We have recursed through to the last grouping_field in the array given in the top-
             # level summarize_buckets call. Now we can get down to actually converting the search
             # result data. First loop through each element in the term's 'buckets' which contain
             # displayable key and a count.
             counts = {}
+            print('OUTER BUCKET: {}'.format(outer_bucket))
             for bucket in outer_bucket[group_by]['buckets']:
                 # Grab the count for the row, and keep track of the maximum count we find by
                 # mutating the max_cell_doc_count property of the matrix for the front end to use
                 # to color the cells. Then we add to a counts dictionary that keeps track of each
-                # displayed term and the corresponding count. Only terms existing in each bucket
-                # get included in `counts`.
+                # displayed term and the corresponding count.
                 doc_count = bucket['doc_count']
                 if doc_count > matrix['max_cell_doc_count']:
                     matrix['max_cell_doc_count'] = doc_count
                 counts[bucket['key']] = doc_count
 
-            # Collect the bucket data for one row of the matrix into the search results we pass to
-            # the front end. Handle the target matrix and assay matrix cases separately because
-            # target matrix bucket data has two-level nesting, while the assay matrix has only a
-            # single level.
-            if target_mode:
-                # For target mode, x_buckets is an array of buckets, so wee need to get the buckets
-                # from each of these sub terms.
-                for term_buckets in x_buckets:
-                    summary = []
-                    for bucket in term_buckets[bucket_term]['buckets']:
-                        summary.append(counts.get(bucket['key'], 0))
-                    outer_bucket[group_by] = summary
-            else:
-                # For assay mode, x_buckets is an array of search results -- an array This collects the data for the assay matrix where x_buckets is an array of terms.
-                # We now have `counts` containing each displayed key and the corresponding count
-                # for a row of the matrix. Convert that to a list of counts (cell values for a row
-                # of the matrix) to replace the existing bucket for the given grouping_fields term
-                # with a simple list of counts without their keys -- the position within the list
-                # corresponds to the keys within 'x'.
-                summary = []
-                for bucket in x_buckets:
-                    summary.append(counts.get(bucket['key'], 0))
-                outer_bucket[group_by] = summary
+            # We now have `counts` containing each displayed key and the corresponding count for a
+            # row of the matrix. Convert that to a list of counts (cell values for a row of the
+            # matrix) to replace the existing bucket for the given grouping_fields term with a
+            # simple list of counts without their keys -- the position within the list corresponds
+            # to the keys within 'x'.
+            summary = []
+            for bucket in x_buckets:
+                summary.append(counts.get(bucket['key'], 0))
+            outer_bucket[group_by] = summary
         else:
             # We still have grouping fields, so we need to dig down into those to format the data
             # for the front end. The `matrix` object in aggregations contains an object keyed with
@@ -1119,17 +1100,58 @@ def matrix(context, request):
             # above if statement. Loop through the buckets in the current level of grouping_field
             # to convert the data within.
             for bucket in outer_bucket[group_by]['buckets']:
-                summarize_buckets(matrix, x_buckets, target_mode, bucket_term, bucket,
-                                  grouping_fields_remaining)
+                summarize_buckets(matrix, x_buckets, bucket, grouping_fields)
 
-    groupings = y_groupings + (x_grouping if target_mode else [x_grouping])
-    summarize_buckets(
-        result['matrix'],
-        aggregations['matrix']['x']['buckets'],
-        target_mode,
-        bucket_term,
-        aggregations['matrix'],
-        groupings)
+    # Rearrange the target data in the buckets returned by Elasticsearch in a format the front end
+    # expects. This has the side effect of modifying the matrix data with this rearranged format.
+    def summarize_target_buckets(matrix, x_buckets, outer_bucket, grouping_fields):
+        # Determine if we have to go deeper into the x_bucket object to extract relevant matrix
+        # data, or if we're at the depth in the object to start collecting target values. Determine
+        # this by seeing if the first grouping field after the first one matches the last grouping
+        # field in the matrix.x.group_by_target property.
+        group_by = grouping_fields[0]
+        remaining_grouping_fields = grouping_fields[1:]
+        if remaining_grouping_fields[0] is matrix['x']['group_by_target'][1]:
+            # The first element of remaining_grouping_fields matches the last element of
+            # matrix.x.group_by_target, so we can start collecting target data from the buckets
+            # Elasticsearch returned. Unlike summarize_buckets above, this function has two levels
+            # of buckets to analyze. Start by looping over the buckets for one row of the matrix.
+            target_group = remaining_grouping_fields[0]
+            counts = {}
+            for bucket in outer_bucket[group_by]['buckets']:
+                # We have one top-level target bucket, and we need to convert the target sub-
+                # buckets.
+                for sub_bucket in bucket[target_group]['buckets']:
+                    # For each sub-bucket, update the matrix’s maximum cell count if needed, and
+                    # add to the dictionary of cell counts for this sub bucket.
+                    doc_count = sub_bucket['doc_count']
+                    if doc_count > matrix['max_cell_doc_count']:
+                        matrix['max_cell_doc_count'] = doc_count
+                    counts[sub_bucket['key']] = doc_count
+
+                # We now have `counts` containing each displayed key and the corresponding count
+                # for a row of the matrix. Convert that to a list of counts (cell values for a row
+                # of the matrix) to replace the existing bucket for the given grouping_fields term
+                # with a simple list of counts without their keys -- the position within the list
+                # corresponds to the keys within 'x'.
+                summary = []
+                for bucket in x_buckets:
+                    summary.append(counts.get(bucket['key'], 0))
+                outer_bucket[group_by] = summary
+                print('OUTER: {}\n\n{}\n\n'.format(summary, counts))
+        else:
+            for bucket in outer_bucket[group_by]['buckets']:
+                summarize_target_buckets(matrix, x_buckets, bucket, remaining_grouping_fields)
+
+    if target_mode:
+        groupings = y_groupings + (x_grouping if target_mode else [x_grouping])
+        summarize_target_buckets(result['matrix'], aggregations['matrix']['x']['buckets'], aggregations['matrix'], groupings)
+    else:
+        summarize_buckets(
+            result['matrix'],
+            aggregations['matrix']['x']['buckets'],
+            aggregations['matrix'],
+            y_groupings + [x_grouping])
 
     result['matrix']['y'][y_groupings[0]] = aggregations['matrix'][y_groupings[0]]
     result['matrix']['x'].update(aggregations['matrix']['x'])
