@@ -38,9 +38,9 @@ GroupMoreButton.defaultProps = {
 };
 
 
-class Matrix extends React.Component {
+class AuditMatrix extends React.Component {
     static generateYGroupOpen(matrix) {
-        // Make a state for each of the Y groups (each Y group currently shows a biosample type).
+        // Make a state for each of the Y groups (each Y group currently shows an audit category).
         // To do that, we have to get each of the bucket keys, which will be the keys into the
         // object that keeps track of whether the group shows all or not. If a group has fewer than
         // the maximum number of items to show a See More button, it doesn't get included in the
@@ -62,7 +62,7 @@ class Matrix extends React.Component {
         super(props);
 
         // Set initial React state.
-        const yGroupOpen = Matrix.generateYGroupOpen(this.props.context.matrix);
+        const yGroupOpen = AuditMatrix.generateYGroupOpen(this.props.context.matrix);
         this.state = {
             yGroupOpen,
             allYGroupsOpen: false,
@@ -80,7 +80,7 @@ class Matrix extends React.Component {
         // This callback makes possible updating the See More buttons when the user clicks a facet,
         // which could cause these buttons to not be needed. This resets all the buttons to the See
         // More state.
-        const yGroupOpen = Matrix.generateYGroupOpen(nextProps.context.matrix);
+        const yGroupOpen = AuditMatrix.generateYGroupOpen(nextProps.context.matrix);
         this.setState({
             yGroupOpen,
             allYGroupsOpen: false,
@@ -141,36 +141,60 @@ class Matrix extends React.Component {
         });
     }
 
+/* eslint no-loop-func: 0 */
     render() {
         const context = this.props.context;
         const matrix = context.matrix;
-        const matrixType = context.matrix.matrix_type;
         const parsedUrl = url.parse(this.context.location_href);
         const matrixBase = parsedUrl.search || '';
         const matrixSearch = matrixBase + (matrixBase ? '&' : '?');
         const notification = context.notification;
         const visualizeLimit = 500;
         if (notification === 'Success' || notification === 'No results found') {
-            // For each facet title in the matrix.x.facets array of facet titles, find the
-            // corresponding object from the search results facets to make the corresponding array
-            // of those. Finally, filter out any missing objects in the resulting array --
-            // matrix.x.facets that don't have a corresponding entry in the search results facets.
-            // Do this process for both the horizontal and vertical facet arrays.
-            const xFacets = matrix.x.facets.map(facetTitle => _(context.facets).findWhere({ field: facetTitle })).filter(facetObj => facetObj);
-            let yFacets = matrix.y.facets.map(facetTitle => _(context.facets).findWhere({ field: facetTitle })).filter(facetObj => facetObj);
-
-            // Generate an array of search result facets that DON'T appear in either the vertical
-            // or horizontal matrix facet arrays. Add this array to the array of vertical facets
-            // we generated in the last step.
-            yFacets = yFacets.concat(_(context.facets).reject(facet => _(matrix.x.facets).contains(facet.field) || _(matrix.y.facets).contains(facet.field)));
-
-            const xGrouping = matrixType === 'target' ? matrix.x.group_by_target : matrix.x.group_by;
+            const xFacets = matrix.x.facets.map(f => _.findWhere(context.facets, { field: f })).filter(f => f);
+            let yFacets = matrix.y.facets.map(f => _.findWhere(context.facets, { field: f })).filter(f => f);
+            yFacets = yFacets.concat(_.reject(context.facets, f => _.contains(matrix.x.facets, f.field) || _.contains(matrix.y.facets, f.field)));
+            const xGrouping = matrix.x.group_by;
             const primaryYGrouping = matrix.y.group_by[0];
             const secondaryYGrouping = matrix.y.group_by[1];
             const xBuckets = matrix.x.buckets;
             const xLimit = matrix.x.limit || xBuckets.length;
-            const yGroups = matrix.y[primaryYGrouping].buckets;
-            const yGroupFacet = _(context.facets).findWhere({ field: primaryYGrouping });
+            let yGroups = matrix.y[primaryYGrouping].buckets;
+            // The following lines are to make sure that the audit categories are in the correct
+            // order and to assign a proper title to each colored row.
+            const orderKey = ['no_audits', 'audit.WARNING.category', 'audit.NOT_COMPLIANT.category',
+                'audit.ERROR.category', 'audit.INTERNAL_ACTION.category'];
+            const titleKey = ['No audits', 'Warning', 'Not Compliant', 'Error', 'Internal Action'];
+            const noAuditKey = ['no errors, compliant, and no warnings', 'no errors and compliant',
+                'no errors', 'no audits'];
+            // For each group, compare against the key arrays above and format yGroups so that
+            // it has the same order as the keys and each group in yGroups has the correct title.
+            let orderIndex = 0;
+            let rowIndex = 0;
+            const tempYGroups = [];
+            const tempNoAudits = [];
+            while (orderIndex < orderKey.length) {
+                yGroups.forEach((group) => {
+                    if (group.key === orderKey[orderIndex]) {
+                        if (group.key === 'no_audits') {
+                            while (rowIndex < noAuditKey.length) {
+                                group.audit_label.buckets.forEach((row) => {
+                                    if (row.key === noAuditKey[rowIndex]) {
+                                        tempNoAudits.push(row);
+                                    }
+                                });
+                                rowIndex += 1;
+                            }
+                            group.audit_label.buckets = tempNoAudits;
+                        }
+                        group.title = titleKey[orderIndex];
+                        tempYGroups.push(group);
+                    }
+                });
+                orderIndex += 1;
+            }
+            yGroups = tempYGroups;
+            const yGroupFacet = _.findWhere(context.facets, { field: primaryYGrouping });
             const yGroupOptions = yGroupFacet ? yGroupFacet.terms.map(term => term.key) : [];
             yGroupOptions.sort();
             const searchBase = context.matrix.search_base;
@@ -194,8 +218,10 @@ class Matrix extends React.Component {
                 table: 'table',
             };
 
-            // Make an array of colors corresponding to the ordering of biosample_type
-            const biosampleTypeColors = this.context.biosampleTypeColors.colorList(yGroups.map(yGroup => yGroup.key));
+            // Make an array of colors corresponding to the ordering of audits
+            // The last color doesn't appear unless you are logged in (DCC Action)
+            // In order: Green, Yellow, Orange, Red, Gray
+            const biosampleTypeColors = ['#009802', '#e0e000', '#ff8000', '#cc0700', '#a0a0a0'];
 
             return (
                 <div>
@@ -207,7 +233,6 @@ class Matrix extends React.Component {
                                         <div>
                                             <h3 style={{ marginTop: 0 }}>{context.title}</h3>
                                             <div>
-                                                <a href="/matrix/?type=Experiment&matrix.type=target">Target</a>
                                                 <p>Click or enter search terms to filter the experiments included in the matrix.</p>
                                                 <TextFilter filters={context.filters} searchBase={matrixSearch} onChange={this.onChange} />
                                             </div>
@@ -276,13 +301,23 @@ class Matrix extends React.Component {
                                                 const groupColor = biosampleTypeColors[i];
                                                 const seriesColor = color(groupColor);
                                                 const parsed = url.parse(matrixBase, true);
-                                                parsed.query[primaryYGrouping] = group.key;
+                                                const searchTerm = '*'; // shows all of certain audit category
+                                                parsed.query[group.key] = searchTerm;
                                                 parsed.query['y.limit'] = null;
                                                 delete parsed.search; // this makes format compose the search string out of the query object
-                                                const groupHref = url.format(parsed);
+                                                let groupHref = url.format(parsed);
+                                                // Change groupHref to the proper url if it is the no_audits row.
+                                                if (group.key === 'no_audits') {
+                                                    groupHref = '?type=Experiment&status=released&audit.ERROR.category!=*&audit.NOT_COMPLIANT.category!=*&audit.WARNING.category!=*&audit.INTERNAL_ACTION.category!=*&y.limit=';
+                                                }
+                                                // The next 2 lines make the category title text
+                                                // color white or black based on the background
+                                                // color.
+                                                const rowColor = seriesColor.clone();
+                                                const categoryTextColor = rowColor.luminosity() > 0.5 ? '#000' : '#fff';
                                                 const rows = [<tr key={group.key}>
                                                     <th colSpan={colCount + 1} style={{ textAlign: 'left', backgroundColor: groupColor }}>
-                                                        <a href={groupHref} style={{ color: '#fff' }}>{group.key}</a>
+                                                        <a href={groupHref} style={{ color: categoryTextColor }}>{group.title}</a>
                                                     </th>
                                                 </tr>];
                                                 const groupBuckets = group[secondaryYGrouping].buckets;
@@ -293,7 +328,20 @@ class Matrix extends React.Component {
                                                 // group rows that are under the display limit.
                                                 const groupRows = (this.state.yGroupOpen[group.key] || this.state.allYGroupsOpen) ? groupBuckets : groupBuckets.slice(0, yLimit);
                                                 rows.push(...groupRows.map((yb) => {
-                                                    const href = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(yb.key)}`;
+                                                    let href = `${searchBase}&${group.key}=${globals.encodedURIComponent(yb.key)}`;
+                                                    // The following lines give the proper urls to the no audits sub rows.
+                                                    if (yb.key === 'no errors') {
+                                                        href = `${searchBase}&audit.ERROR.category!=*`;
+                                                    }
+                                                    if (yb.key === 'no errors and compliant') {
+                                                        href = `${searchBase}&audit.ERROR.category!=*&audit.NOT_COMPLIANT.category!=*`;
+                                                    }
+                                                    if (yb.key === 'no errors, compliant, and no warnings') {
+                                                        href = `${searchBase}&audit.ERROR.category!=*&audit.NOT_COMPLIANT.category!=*&audit.WARNING.category!=*`;
+                                                    }
+                                                    if (yb.key === 'no audits') {
+                                                        href = `${searchBase}&audit.ERROR.category!=*&audit.NOT_COMPLIANT.category!=*&audit.WARNING.category!=*&audit.INTERNAL_ACTION.category!=*`;
+                                                    }
                                                     return (
                                                         <tr key={yb.key}>
                                                             <th style={{ backgroundColor: '#ddd', border: 'solid 1px white' }}><a href={href}>{yb.key}</a></th>
@@ -304,7 +352,7 @@ class Matrix extends React.Component {
                                                                     // scale color between white and the series color
                                                                     cellColor.lightness(cellColor.lightness() + ((1 - (value / matrix.max_cell_doc_count)) * (100 - cellColor.lightness())));
                                                                     const textColor = cellColor.luminosity() > 0.5 ? '#000' : '#fff';
-                                                                    const cellHref = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(yb.key)}&${xGrouping}=${globals.encodedURIComponent(xb.key)}`;
+                                                                    const cellHref = `${href}&${xGrouping}=${globals.encodedURIComponent(xb.key)}`;
                                                                     const title = `${yb.key} / ${xb.key}: ${value}`;
                                                                     return (
                                                                         <td key={xb.key} style={{ backgroundColor: cellColor.hexString() }}>
@@ -343,7 +391,7 @@ class Matrix extends React.Component {
                                                 <tr>
                                                     <th className="group-all-groups-cell">
                                                         <button className="group-all-groups-cell__button" onClick={this.handleSeeAllClick}>
-                                                            {this.state.allYGroupsOpen ? 'See fewer biosamples' : 'See all biosamples'}
+                                                            {this.state.allYGroupsOpen ? 'See fewer audits' : 'See all audits'}
                                                         </button>
                                                     </th>
                                                 </tr>
@@ -374,14 +422,15 @@ class Matrix extends React.Component {
     }
 }
 
-Matrix.propTypes = {
+AuditMatrix.propTypes = {
     context: React.PropTypes.object.isRequired,
 };
 
-Matrix.contextTypes = {
+AuditMatrix.contextTypes = {
     location_href: PropTypes.string,
     navigate: PropTypes.func,
     biosampleTypeColors: PropTypes.object, // DataColor instance for experiment project
+    auditCategoryColors: PropTypes.object,
 };
 
-globals.contentViews.register(Matrix, 'Matrix');
+globals.contentViews.register(AuditMatrix, 'AuditMatrix');
