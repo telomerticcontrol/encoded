@@ -1131,10 +1131,10 @@ def matrix(context, request):
                     counts[sub_bucket['key']] = doc_count
 
                 # We now have `counts` containing each displayed key and the corresponding count
-                # for a row of the matrix. Convert that to a list of counts (cell values for a row
-                # of the matrix) to replace the existing bucket for the given grouping_fields term
-                # with a simple list of counts without their keys -- the position within the list
-                # corresponds to the keys within 'x'.
+                # for a row of the matrix for one target. Convert that to a list of counts (cell
+                # values for a row of the matrix) to replace the existing bucket for the given
+                # grouping_fields term with a simple list of counts without their keys -- the
+                # position within the list corresponds to the keys within 'x'.
                 summary = []
                 for sub_bucket in bucket[target_group]['buckets']:
                     summary.append(counts.get(sub_bucket['key'], 0))
@@ -1146,7 +1146,6 @@ def matrix(context, request):
 
     if target_mode:
         groupings = y_groupings + (x_grouping if target_mode else [x_grouping])
-        print('{}\n'.format(aggregations['matrix']))
         summarize_target_buckets(result['matrix'], aggregations['matrix']['x']['buckets'], aggregations['matrix'], groupings)
     else:
         summarize_buckets(
