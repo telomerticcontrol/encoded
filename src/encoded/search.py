@@ -1073,7 +1073,6 @@ def matrix(context, request):
             # result data. First loop through each element in the term's 'buckets' which contain
             # displayable key and a count.
             counts = {}
-            print('OUTER BUCKET: {}'.format(outer_bucket))
             for bucket in outer_bucket[group_by]['buckets']:
                 # Grab the count for the row, and keep track of the maximum count we find by
                 # mutating the max_cell_doc_count property of the matrix for the front end to use
@@ -1119,10 +1118,10 @@ def matrix(context, request):
             # matrix.x.group_by_target, so we can start collecting target data from the buckets
             # Elasticsearch returned. Unlike summarize_buckets above, this function has two levels
             # of buckets to analyze. Start by looping over the buckets for one row of the matrix.
-            counts = {}
             for bucket in outer_bucket[group_by]['buckets']:
                 # We have one top-level target bucket, and we need to convert the target sub-
                 # buckets.
+                counts = {}
                 for sub_bucket in bucket[target_group]['buckets']:
                     # For each sub-bucket, update the matrix's maximum cell count if needed, and
                     # add to the dictionary of cell counts for this sub bucket.
@@ -1136,13 +1135,11 @@ def matrix(context, request):
                 # of the matrix) to replace the existing bucket for the given grouping_fields term
                 # with a simple list of counts without their keys -- the position within the list
                 # corresponds to the keys within 'x'.
-                import pdb
-                pdb.set_trace()
                 summary = []
                 for sub_bucket in bucket[target_group]['buckets']:
                     summary.append(counts.get(sub_bucket['key'], 0))
-                bucket[target_group]['buckets'] = summary
-                outer_bucket[group_by]['buckets']
+                bucket[target_group] = summary
+                # outer_bucket[group_by]['buckets']
         else:
             for bucket in outer_bucket[group_by]['buckets']:
                 summarize_target_buckets(matrix, x_buckets, bucket, remaining_grouping_fields)
