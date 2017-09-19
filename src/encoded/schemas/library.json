@@ -27,12 +27,6 @@
         },
         "nucleic_acid_term_name": {
             "title":"Nucleic acid"
-        },
-        "award.rfa": {
-            "title": "Award RFA"
-        },
-        "lab.title": {
-            "title": "Lab"
         }
     },
     "dependencies": {
