@@ -24,6 +24,15 @@
     "facets": {
         "status": {
             "title": "Library status"
+        },
+        "nucleic_acid_term_name":{
+            "title":"Nucleic Acid"
+        },
+        "award.rfa": {
+            "title": "Award RFA"
+        }
+        "lab.title": {
+            "title": "Lab"
         }
     },
     "dependencies": {
