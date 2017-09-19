@@ -5,7 +5,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object",
     "required": [ "award", "lab", "nucleic_acid_term_name"],
-    "identifyingProperties": ["uuid","accession", "aliases"],
+    "identifyingProperties": ["uuid", "accession", "aliases"],
     "additionalProperties": false,
     "mixinProperties": [
         { "$ref": "mixins.json#/lot_id" },
@@ -25,8 +25,8 @@
         "status": {
             "title": "Library status"
         },
-        "nucleic_acid_term_name":{
-            "title":"Nucleic Acid"
+        "nucleic_acid_term_name": {
+            "title":"Nucleic acid"
         },
         "award.rfa": {
             "title": "Award RFA"
