@@ -338,7 +338,7 @@ def set_filters(request, query, result, static_items=None):
         terms = all_terms[field]
         if field in ['type', 'limit', 'y.limit', 'x.limit', 'mode', 'annotation',
                      'format', 'frame', 'datastore', 'field', 'region', 'genome',
-                     'sort', 'from', 'referrer']:
+                     'sort', 'from', 'referrer', 'matrix.type']:
             continue
 
         # Add filter to result
@@ -981,6 +981,18 @@ def matrix(context, request):
     else:
         result['title'] = type_info.name + ' Matrix'
 
+    # Determine if "matrix.target=target" was in the query string, indicating we should do a target-
+    # based search. We do a normal assay-based search if "matrix.target=assay" is in the query
+    # string, or no matrix.target at all exists.
+    target_value = request.params.getall('matrix.type')
+    if len(target_value) > 1:
+        msg = 'Matrix results require at most one matrix type.'
+        raise HTTPBadRequest(explanation=msg)
+    elif len(target_value) == 1 and (target_value[0] != 'target' and target_value[0] != 'assay'):
+        msg = 'Matrix type must be "assay" or "target" to produce results.'
+        raise HTTPBadRequest(explanation=msg)
+    target_mode = len(target_value) == 1 and target_value[0] == 'target'
+
     matrix = result['matrix'] = type_info.factory.matrix.copy()
     matrix['x']['limit'] = request.params.get('x.limit', 20)
     matrix['y']['limit'] = request.params.get('y.limit', 5)
@@ -1043,16 +1055,42 @@ def matrix(context, request):
 
     query['aggs'] = set_facets(facets, used_filters, principals, doc_types)
 
-    # Group results in 2 dimensions
-    x_grouping = matrix['x']['group_by']
+    if target_mode:
+        # Target matrix requested. Get parameters of the target search from group_by_target array
+        # in data type's configuration. We build the request from the lowest level first to fit
+        # aggs search.
+        x_grouping = matrix['x']['group_by_target']
+        for index, field in enumerate(list(reversed(x_grouping))):
+            if index == 0:
+                x_agg = {
+                    field: {
+                        "terms": {
+                            "field": 'embedded.' + field,
+                            "size": 999999,
+                        }
+                    }
+                }
+            else:
+                x_agg = {
+                    "terms": {
+                        "field": 'embedded.' + field,
+                        "size": 999999,
+                    },
+                    "aggs": x_agg,
+                }
+        aggs = {x_grouping[0]: x_agg}
+    else:
+        # Assay matrix requested. Get parameters of the assay search from the group_by string.
+        x_grouping = matrix['x']['group_by']
+        x_agg = {
+            "terms": {
+                "field": 'embedded.' + x_grouping,
+                "size": 999999,  # no limit
+            },
+        }
+        aggs = {x_grouping: x_agg}
+
     y_groupings = matrix['y']['group_by']
-    x_agg = {
-        "terms": {
-            "field": 'embedded.' + x_grouping,
-            "size": 999999,  # no limit
-        },
-    }
-    aggs = {x_grouping: x_agg}
     for field in reversed(y_groupings):
         aggs = {
             field: {
@@ -1081,6 +1119,7 @@ def matrix(context, request):
     aggregations = es_results['aggregations']
     result['matrix']['doc_count'] = total = aggregations['matrix']['doc_count']
     result['matrix']['max_cell_doc_count'] = 0
+    result['matrix']['matrix_type'] = 'target' if target_mode else 'assay'
 
     # Format facets for results
     result['facets'] = format_facets(
@@ -1104,11 +1143,57 @@ def matrix(context, request):
             for bucket in outer_bucket[group_by]['buckets']:
                 summarize_buckets(matrix, x_buckets, bucket, grouping_fields)
 
-    summarize_buckets(
-        result['matrix'],
-        aggregations['matrix']['x']['buckets'],
-        aggregations['matrix'],
-        y_groupings + [x_grouping])
+    # Rearrange the target data in the buckets returned by Elasticsearch in a format the front end
+    # expects. This has the side effect of modifying the matrix data with this rearranged format.
+    def summarize_target_buckets(matrix, x_buckets, outer_bucket, grouping_fields):
+        # Determine if we have to go deeper into the x_bucket object to extract relevant matrix
+        # data, or if we're at the depth in the object to start collecting target values. Determine
+        # this by seeing if the first grouping field after the first one matches the last grouping
+        # field in the matrix.x.group_by_target property.
+        group_by = grouping_fields[0]
+        remaining_grouping_fields = grouping_fields[1:]
+        target_group = remaining_grouping_fields[0] if len(remaining_grouping_fields) == 1 else ''
+        if target_group is matrix['x']['group_by_target'][1]:
+            # The first element of remaining_grouping_fields matches the last element of
+            # matrix.x.group_by_target, so we can start collecting target data from the buckets
+            # Elasticsearch returned. Unlike summarize_buckets above, this function has two levels
+            # of buckets to analyze. Start by looping over the buckets for one row of the matrix.
+            for bucket in outer_bucket[group_by]['buckets']:
+                # We have one top-level target bucket, and we need to convert the target sub-
+                # buckets.
+                counts = {}
+                for sub_bucket in bucket[target_group]['buckets']:
+                    # For each sub-bucket, update the matrix's maximum cell count if needed, and
+                    # add to the dictionary of cell counts for this sub bucket.
+                    doc_count = sub_bucket['doc_count']
+                    if doc_count > matrix['max_cell_doc_count']:
+                        matrix['max_cell_doc_count'] = doc_count
+                    counts[sub_bucket['key']] = doc_count
+
+                # We now have `counts` containing each displayed key and the corresponding count
+                # for a row of the matrix for one target. Convert that to a list of counts (cell
+                # values for a row of the matrix) to replace the existing bucket for the given
+                # grouping_fields term with a simple list of counts without their keys -- the
+                # position within the list corresponds to the keys within 'x'.
+                summary = []
+                for sub_bucket in bucket[target_group]['buckets']:
+                    summary.append(counts.get(sub_bucket['key'], 0))
+                bucket[target_group] = summary
+                # outer_bucket[group_by]['buckets']
+        else:
+            for bucket in outer_bucket[group_by]['buckets']:
+                summarize_target_buckets(matrix, x_buckets, bucket, remaining_grouping_fields)
+
+    if target_mode:
+        groupings = y_groupings + (x_grouping if target_mode else [x_grouping])
+        summarize_target_buckets(result['matrix'], aggregations['matrix']['x']['buckets'],
+                                 aggregations['matrix'], groupings)
+    else:
+        summarize_buckets(
+            result['matrix'],
+            aggregations['matrix']['x']['buckets'],
+            aggregations['matrix'],
+            y_groupings + [x_grouping])
 
     result['matrix']['y'][y_groupings[0]] = aggregations['matrix'][y_groupings[0]]
     result['matrix']['x'].update(aggregations['matrix']['x'])
