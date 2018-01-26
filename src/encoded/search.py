@@ -956,7 +956,6 @@ def matrix(context, request):
     result = {
         '@context': request.route_path('jsonld_context'),
         '@id': request.route_path('matrix', slash='/') + search_base,
-        '@type': ['Matrix'],
         'filters': [],
         'notification': '',
     }
@@ -993,6 +992,7 @@ def matrix(context, request):
         raise HTTPBadRequest(explanation=msg)
     target_mode = len(target_value) == 1 and target_value[0] == 'target'
 
+    result['@type'] = ['TargetMatrix'] if target_mode else ['Matrix']
     matrix = result['matrix'] = type_info.factory.matrix.copy()
     matrix['x']['limit'] = request.params.get('x.limit', 20)
     matrix['y']['limit'] = request.params.get('y.limit', 5)
@@ -1175,14 +1175,14 @@ def matrix(context, request):
                 # values for a row of the matrix) to replace the existing bucket for the given
                 # grouping_fields term with a simple list of counts without their keys -- the
                 # position within the list corresponds to the keys within 'x'.
+                matching_x_bucket = next((x_bucket for x_bucket in x_buckets
+                                         if x_bucket['key'] == group_bucket['key']), None)
                 summary = []
-                for bucket in x_buckets:
-                    import pdb
-                    pdb.set_trace()
-                    print('counts: {} -- {}'.format(bucket['key'], counts))
-                for bucket in group_bucket[target_group]['buckets']:
+                for bucket in matching_x_bucket[target_group]['buckets']:
                     summary.append(counts.get(bucket['key'], 0))
-                bucket[target_group] = summary
+                group_by_buckets = outer_bucket[group_by]['buckets']
+                matching_outer_bucket = next((group_by_bucket for group_by_bucket in group_by_buckets if group_by_bucket['key'] == group_bucket['key']), None)
+                matching_outer_bucket['target.label'] = summary
         else:
             for bucket in outer_bucket[group_by]['buckets']:
                 summarize_target_buckets(matrix, x_buckets, bucket, remaining_grouping_fields)
