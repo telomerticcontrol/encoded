@@ -373,3 +373,97 @@ Matrix.contextTypes = {
 };
 
 globals.contentViews.register(Matrix, 'Matrix');
+
+
+class TargetMatrix extends React.Component {
+    constructor() {
+        super();
+
+        // Bind `this` to non-React components.
+        this.onChange = this.onChange.bind(this);
+    }
+
+    onChange(href) {
+        this.context.navigate(href);
+    }
+
+    render() {
+        const { context } = this.props;
+        const { location_href } = this.context;
+
+        if (context.notification !== 'Success' && context.notification !== 'No results found') {
+            return <h4>{context.notification}</h4>;
+        }
+
+        // Come up with a search query string to use as a base for <TextFilter> used when someone
+        // enters some text into the matrix search box. It has to refer back to this matrix page,
+        // so we start with `location_href`.
+        const parsedUrl = url.parse(location_href);
+        const matrixBase = parsedUrl.search || '';
+        const matrixSearch = `${matrixBase}${matrixBase ? '&' : '?'}`;
+
+        // The context.matrix.x.facets and context.matrix.y.facets arrays specify which elements
+        // of context.facets should be included in the horizontal and vertical facets. Use those
+        // to select context.facet objects to display in each facet area on the page. Additionally,
+        // any context.facets objects that *aren't* included in matrix.x.facets and matrix.y.facets
+        // get tacked onto the end of vertFacets.
+        const horzFacets = context.facets.filter(facet => context.matrix.x.facets.indexOf(facet.field) > -1);
+        const vertFacets = context.facets.filter(facet => context.matrix.y.facets.indexOf(facet.field) > -1).concat(
+            context.facets.filter(facet => (
+                context.matrix.x.facets.indexOf(facet.field) === -1 && context.matrix.y.facets.indexOf(facet.field) === -1
+            ))
+        );
+
+        return (
+            <div>
+                <div className="panel data-display main-panel">
+                    <div className="row">
+                        <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding" style={{ paddingRight: 0 }}>
+                            <div className="row">
+                                <div className="col-sm-11">
+                                    <div>
+                                        <h3 style={{ marginTop: 0 }}>{context.title}</h3>
+                                        <div>
+                                            <p>Click or enter search terms to filter the experiments included in the matrix.</p>
+                                            <TextFilter filters={context.filters} searchBase={matrixSearch} onChange={this.onChange} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-sm-7 col-md-8 col-lg-9 sm-no-padding" style={{ paddingLeft: 0 }}>
+                            <FacetList
+                                facets={horzFacets}
+                                filters={context.filters}
+                                orientation="horizontal"
+                                searchBase={matrixSearch}
+                                onFilter={this.onFilter}
+                            />
+                        </div>
+                        <div className="row">
+                            <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding" style={{ paddingRight: 0 }}>
+                                <FacetList
+                                    facets={vertFacets}
+                                    filters={context.filters}
+                                    searchBase={matrixSearch}
+                                    onFilter={this.onFilter}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+
+TargetMatrix.propTypes = {
+    context: React.PropTypes.object.isRequired,
+};
+
+TargetMatrix.contextTypes = {
+    location_href: PropTypes.string,
+    navigate: PropTypes.func,
+};
+
+globals.contentViews.register(TargetMatrix, 'TargetMatrix');
