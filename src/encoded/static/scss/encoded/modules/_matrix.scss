@@ -131,3 +131,17 @@ table.matrix th.group-all-groups-cell {
 .group-all-groups-cell__button {
     @extend .group-more-cell__button;
 }
+
+.matrix-facet-area {
+    h3 {
+        margin-top: 0;
+    }
+
+    @at-root #{&}--right {
+        padding-right: 0;
+    }
+
+    @at-root #{&}--left {
+        padding-left: 0;
+    }
+}

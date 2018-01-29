@@ -445,6 +445,7 @@ class Experiment(Dataset,
             'group_by_target': ['target.investigated_as', 'target.label'],
             'group_by': 'assay_title',
             'label': 'Assay',
+            'label_target': 'Target',
         },
         "x_groupings": ['target.investigated_as', 'target.label']
     }

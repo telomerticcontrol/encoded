@@ -9,6 +9,13 @@ import { BrowserSelector } from './objectutils';
 import { BatchDownload, FacetList, TextFilter } from './search';
 
 
+// Map view icons to svg icons
+const view2svg = {
+    'list-alt': 'search',
+    table: 'table',
+};
+
+
 class GroupMoreButton extends React.Component {
     constructor() {
         super();
@@ -176,12 +183,6 @@ class Matrix extends React.Component {
                     return (aLower > bLower) ? 1 : ((aLower < bLower) ? -1 : 0);
                 });
             }
-
-            // Map view icons to svg icons
-            const view2svg = {
-                'list-alt': 'search',
-                table: 'table',
-            };
 
             // Make an array of colors corresponding to the ordering of biosample_type
             const biosampleTypeColors = this.context.biosampleTypeColors.colorList(yGroups.map(yGroup => yGroup.key));
@@ -395,6 +396,18 @@ class TargetMatrix extends React.Component {
             return <h4>{context.notification}</h4>;
         }
 
+        const matrix = context.matrix;
+        const xBuckets = matrix.x.buckets;
+        const primaryXGrouping = matrix.x.group_by_target[0];
+        const secondaryXGrouping = matrix.x.group_by_target[1];
+        const primaryYGrouping = matrix.y.group_by[0];
+        const secondaryYGrouping = matrix.y.group_by[1];
+        const yBuckets = matrix.y[primaryYGrouping].buckets;
+
+        // Count the number of horizontal columns which includes the length of each child bucket
+        // array plus 1 for the parent bucket title.
+        const colCount = xBuckets.reduce((acc, outerBucket) => acc + outerBucket[secondaryXGrouping].buckets.length + 1, 0);
+
         // Come up with a search query string to use as a base for <TextFilter> used when someone
         // enters some text into the matrix search box. It has to refer back to this matrix page,
         // so we start with `location_href`.
@@ -405,12 +418,12 @@ class TargetMatrix extends React.Component {
         // The context.matrix.x.facets and context.matrix.y.facets arrays specify which elements
         // of context.facets should be included in the horizontal and vertical facets. Use those
         // to select context.facet objects to display in each facet area on the page. Additionally,
-        // any context.facets objects that *aren't* included in matrix.x.facets and matrix.y.facets
+        // any context.facets objects that *aren't* included in matrix.x.facets nor matrix.y.facets
         // get tacked onto the end of vertFacets.
-        const horzFacets = context.facets.filter(facet => context.matrix.x.facets.indexOf(facet.field) > -1);
-        const vertFacets = context.facets.filter(facet => context.matrix.y.facets.indexOf(facet.field) > -1).concat(
+        const horzFacets = context.facets.filter(facet => matrix.x.facets.indexOf(facet.field) > -1);
+        const vertFacets = context.facets.filter(facet => matrix.y.facets.indexOf(facet.field) > -1).concat(
             context.facets.filter(facet => (
-                context.matrix.x.facets.indexOf(facet.field) === -1 && context.matrix.y.facets.indexOf(facet.field) === -1
+                matrix.x.facets.indexOf(facet.field) === -1 && matrix.y.facets.indexOf(facet.field) === -1
             ))
         );
 
@@ -418,11 +431,12 @@ class TargetMatrix extends React.Component {
             <div>
                 <div className="panel data-display main-panel">
                     <div className="row">
-                        <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding" style={{ paddingRight: 0 }}>
+                        {/* Title and search box */}
+                        <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding matrix-facet-area matrix-facet-area--right">
                             <div className="row">
                                 <div className="col-sm-11">
                                     <div>
-                                        <h3 style={{ marginTop: 0 }}>{context.title}</h3>
+                                        <h3>{context.title}</h3>
                                         <div>
                                             <p>Click or enter search terms to filter the experiments included in the matrix.</p>
                                             <TextFilter filters={context.filters} searchBase={matrixSearch} onChange={this.onChange} />
@@ -431,7 +445,9 @@ class TargetMatrix extends React.Component {
                                 </div>
                             </div>
                         </div>
-                        <div className="col-sm-7 col-md-8 col-lg-9 sm-no-padding" style={{ paddingLeft: 0 }}>
+
+                        {/* Horizontal facets */}
+                        <div className="col-sm-7 col-md-8 col-lg-9 sm-no-padding matrix-facet-area matrix-facet-area--left">
                             <FacetList
                                 facets={horzFacets}
                                 filters={context.filters}
@@ -440,14 +456,81 @@ class TargetMatrix extends React.Component {
                                 onFilter={this.onFilter}
                             />
                         </div>
+
+                        {/* Vertical facets and matrix itself */}
                         <div className="row">
-                            <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding" style={{ paddingRight: 0 }}>
+                            <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding matrix-facet-area matrix-facet-area--right">
                                 <FacetList
                                     facets={vertFacets}
                                     filters={context.filters}
                                     searchBase={matrixSearch}
                                     onFilter={this.onFilter}
                                 />
+                            </div>
+                            <div className="col-sm-7 col-md-8 col-lg-9 sm-no-padding">
+                                <div className="matrix-wrapper">
+                                    <div className="matrix-group-heading">
+                                        <div className="matrix-group-heading__content">
+                                            {matrix.y.label.toUpperCase()}
+                                        </div>
+                                    </div>
+                                </div>
+                                <table className="matrix">
+                                    <tbody>
+                                        {matrix.doc_count ?
+                                            <tr>
+                                                <th style={{ width: 20 }} />
+                                                <th colSpan={colCount + 1} style={{ padding: '5px', borderBottom: 'solid 1px #ddd', textAlign: 'center' }}>{matrix.x.label_target.toUpperCase()}</th>
+                                            </tr>
+                                        : null}
+                                        <tr style={{ borderBottom: 'solid 1px #ddd' }}>
+                                            <th style={{ textAlign: 'center', width: 200 }}>
+                                                <h3>{matrix.doc_count} results</h3>
+                                                <div className="btn-attached">
+                                                    {matrix.doc_count && context.views ? context.views.map(view => <a href={view.href} key={view.icon} className="btn btn-info btn-sm btn-svgicon" title={view.title}>{svgIcon(view2svg[view.icon])}</a>) : ''}
+                                                </div>
+                                                {context.filters.length ?
+                                                    <div className="clear-filters-control-matrix">
+                                                        <a href={context.matrix.clear_matrix}>Clear Filters <i className="icon icon-times-circle" /></a>
+                                                    </div>
+                                                : null}
+                                            </th>
+
+                                            {/* Display horizontal column headers */}
+                                            {xBuckets.map((primaryBucket) => {
+                                                // Display parent column titles with child column
+                                                // titles appended to it so we have a straight
+                                                // array of <th> elements.
+                                                const secondaryColumns = primaryBucket[secondaryXGrouping].buckets.map(secondaryBucket => (
+                                                    <th key={`${primaryBucket.key}${secondaryBucket.key}`} className="rotate30" style={{ width: 10 }}><div><a>{secondaryBucket.key}</a></div></th>
+                                                ));
+                                                return [<th key={primaryBucket.key} className="rotate30" style={{ width: 10 }}><div><a>{primaryBucket.key}</a></div></th>].concat(secondaryColumns);
+                                            })}
+                                        </tr>
+
+                                        {/* Display each row of the matrix */}
+                                        {yBuckets.map((primaryBucket) => {
+                                            const secondaryRows = primaryBucket[secondaryYGrouping].buckets.map(secondaryBucket => (
+                                                <tr>
+                                                    <th key={`${primaryBucket.key}${secondaryBucket.key}`}><a>{secondaryBucket.key}</a></th>
+                                                    {secondaryBucket[primaryXGrouping].buckets.map((primaryXBucket) => {
+                                                        const secondaryXRows = primaryXBucket[secondaryXGrouping].map(value => <td>{value}</td>);
+                                                        return secondaryXRows;
+                                                    })}
+                                                </tr>
+                                            ));
+                                            return (
+                                                [
+                                                    <tr key={primaryBucket.key}>
+                                                        <th colSpan={colCount + 1} style={{ textAlign: 'left' }}>
+                                                            <a>{primaryBucket.key}</a>
+                                                        </th>
+                                                    </tr>,
+                                                ].concat(secondaryRows)
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -458,7 +541,7 @@ class TargetMatrix extends React.Component {
 }
 
 TargetMatrix.propTypes = {
-    context: React.PropTypes.object.isRequired,
+    context: React.PropTypes.object.isRequired, // Search results JSON
 };
 
 TargetMatrix.contextTypes = {
