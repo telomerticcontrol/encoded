@@ -145,3 +145,29 @@ table.matrix th.group-all-groups-cell {
         padding-left: 0;
     }
 }
+
+// Title above matrix header row.
+.matrix-title {
+    @at-root #{&}__spacer {
+        width: 200px;
+    }
+
+    @at-root #{&}__text {
+        padding: 5px !important;
+        border-bottom: solid 1px #ddd;
+        text-align: center !important;
+    }
+}
+
+.matrix-header {
+    border-bottom: solid 1px #ddd;
+
+    @at-root #{&}__controls {
+        width: 200px !important;
+        text-align: center !important;
+    }
+
+    @at-root #{&}__titles {
+        width: 10px !important;
+    }
+}
