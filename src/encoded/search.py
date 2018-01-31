@@ -23,6 +23,7 @@ def includeme(config):
     config.add_route('search', '/search{slash:/?}')
     config.add_route('report', '/report{slash:/?}')
     config.add_route('matrix', '/matrix{slash:/?}')
+    config.add_route('matrix-target', '/matrix-target{slash:/?}')
     config.add_route('news', '/news/')
     config.add_route('audit', '/audit/')
     config.scan(__name__)
@@ -948,14 +949,16 @@ def report(context, request):
 
 
 @view_config(route_name='matrix', request_method='GET', permission='search')
+@view_config(route_name='matrix-target', request_method='GET', permission='search')
 def matrix(context, request):
     """
     Return search results aggregated by x and y buckets for building a matrix display.
     """
+    route_name = request.matched_route.name
     search_base = normalize_query(request)
     result = {
         '@context': request.route_path('jsonld_context'),
-        '@id': request.route_path('matrix', slash='/') + search_base,
+        '@id': request.route_path(route_name, slash='/') + search_base,
         'filters': [],
         'notification': '',
     }
@@ -980,17 +983,8 @@ def matrix(context, request):
     else:
         result['title'] = type_info.name + ' Matrix'
 
-    # Determine if "matrix.target=target" was in the query string, indicating we should do a target-
-    # based search. We do a normal assay-based search if "matrix.target=assay" is in the query
-    # string, or no matrix.target at all exists.
-    target_value = request.params.getall('matrix.type')
-    if len(target_value) > 1:
-        msg = 'Matrix results require at most one matrix type.'
-        raise HTTPBadRequest(explanation=msg)
-    elif len(target_value) == 1 and (target_value[0] != 'target' and target_value[0] != 'assay'):
-        msg = 'Matrix type must be "assay" or "target" to produce results.'
-        raise HTTPBadRequest(explanation=msg)
-    target_mode = len(target_value) == 1 and target_value[0] == 'target'
+    # Determine if the route specifies a target matrix rather than an assay matrix.
+    target_mode = route_name == 'matrix-target'
 
     result['@type'] = ['TargetMatrix'] if target_mode else ['Matrix']
     matrix = result['matrix'] = type_info.factory.matrix.copy()
@@ -999,7 +993,7 @@ def matrix(context, request):
         matrix['x']['limit'] = request.params.get('x.limit', 20)
         matrix['y']['limit'] = request.params.get('y.limit', 5)
     matrix['search_base'] = request.route_path('search', slash='/') + search_base
-    matrix['clear_matrix'] = request.route_path('matrix', slash='/') + '?type=' + item_type
+    matrix['clear_matrix'] = request.route_path(route_name, slash='/') + '?type=' + item_type
 
     result['views'] = [
         {
