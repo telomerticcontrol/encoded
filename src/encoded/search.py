@@ -986,7 +986,7 @@ def matrix(context, request):
     # Determine if the route specifies a target matrix rather than an assay matrix.
     target_mode = route_name == 'matrix-target'
 
-    result['@type'] = ['TargetMatrix'] if target_mode else ['Matrix']
+    result['@type'] = ['MatrixTarget'] if target_mode else ['Matrix']
     matrix = result['matrix'] = type_info.factory.matrix.copy()
     if not target_mode:
         # Target matrices don't support x.limit nor y.limit.

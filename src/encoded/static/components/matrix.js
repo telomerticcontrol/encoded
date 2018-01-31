@@ -376,7 +376,7 @@ Matrix.contextTypes = {
 globals.contentViews.register(Matrix, 'Matrix');
 
 
-class TargetMatrix extends React.Component {
+class MatrixTarget extends React.Component {
     constructor() {
         super();
 
@@ -558,13 +558,13 @@ class TargetMatrix extends React.Component {
     }
 }
 
-TargetMatrix.propTypes = {
+MatrixTarget.propTypes = {
     context: React.PropTypes.object.isRequired, // Search results JSON
 };
 
-TargetMatrix.contextTypes = {
+MatrixTarget.contextTypes = {
     location_href: PropTypes.string,
     navigate: PropTypes.func,
 };
 
-globals.contentViews.register(TargetMatrix, 'TargetMatrix');
+globals.contentViews.register(MatrixTarget, 'MatrixTarget');
