@@ -993,7 +993,8 @@ def matrix(context, request):
         matrix['x']['limit'] = request.params.get('x.limit', 20)
         matrix['y']['limit'] = request.params.get('y.limit', 5)
     matrix['search_base'] = request.route_path('search', slash='/') + search_base
-    matrix['clear_matrix'] = request.route_path(route_name, slash='/') + '?type=' + item_type
+    matrix['clear_matrix'] = (request.route_path(route_name, slash='/') + '?type=' + item_type +
+                              '&target=%2A' if target_mode else '')
 
     result['views'] = [
         {

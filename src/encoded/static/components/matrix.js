@@ -457,77 +457,95 @@ class MatrixTarget extends React.Component {
                                 onFilter={this.onFilter}
                             />
                         </div>
+                    </div>
 
-                        {/* Vertical facets and matrix itself */}
-                        <div className="row">
-                            <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding matrix-facet-area matrix-facet-area--right">
-                                <FacetList
-                                    facets={vertFacets}
-                                    filters={context.filters}
-                                    searchBase={matrixSearch}
-                                    onFilter={this.onFilter}
-                                />
-                            </div>
-                            <div className="col-sm-7 col-md-8 col-lg-9 sm-no-padding">
-                                <div className="matrix-wrapper">
-                                    <div className="matrix-group-heading">
-                                        <div className="matrix-group-heading__content">
-                                            {matrix.y.label.toUpperCase()}
-                                        </div>
+                    {/* Vertical facets and matrix itself */}
+                    <div className="row">
+                        <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding matrix-facet-area matrix-facet-area--right">
+                            <FacetList
+                                facets={vertFacets}
+                                filters={context.filters}
+                                searchBase={matrixSearch}
+                                onFilter={this.onFilter}
+                            />
+                        </div>
+                        <div className="col-sm-7 col-md-8 col-lg-9 sm-no-padding">
+                            <div className="matrix-wrapper">
+                                <div className="matrix-group-heading">
+                                    <div className="matrix-group-heading__content">
+                                        {matrix.y.label.toUpperCase()}
                                     </div>
                                 </div>
-                                <table className="matrix">
-                                    <tbody>
-                                        {matrix.doc_count ?
-                                            <tr className="matrix-title">
-                                                <th className="matrix-title__spacer" />
-                                                <th className="matrix-title__text" colSpan={colCount + 1}>{matrix.x.label_target.toUpperCase()}</th>
-                                            </tr>
-                                        : null}
-                                        <tr className="matrix-header">
-                                            <th className="matrix-header__controls">
-                                                <h3>{matrix.doc_count} results</h3>
-                                                <div className="btn-attached">
-                                                    {matrix.doc_count && context.views ? context.views.map(view => <a href={view.href} key={view.icon} className="btn btn-info btn-sm btn-svgicon" title={view.title}>{svgIcon(view2svg[view.icon])}</a>) : ''}
-                                                </div>
-                                                {context.filters.length ?
-                                                    <div className="clear-filters-control-matrix">
-                                                        <a href={context.matrix.clear_matrix}>Clear Filters <i className="icon icon-times-circle" /></a>
-                                                    </div>
-                                                : null}
-                                            </th>
-
-                                            {/* Display horizontal column headers */}
-                                            {xBuckets.map((primaryBucket) => {
-                                                // Display parent column titles with child column
-                                                // titles appended to it so we have a straight
-                                                // array of <th> elements.
-                                                const primaryHref = `${searchBase}&${primaryXGrouping}=${globals.encodedURIComponent(primaryBucket.key)}`;
-                                                const secondaryColumns = primaryBucket[secondaryXGrouping].buckets.map((secondaryBucket) => {
-                                                    const secondaryHref = `${searchBase}&${primaryXGrouping}=${globals.encodedURIComponent(primaryBucket.key)}&${secondaryXGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}`;
-                                                    return <th key={`${primaryBucket.key}${secondaryBucket.key}`} className="rotate30 matrix-header__titles"><div><a href={secondaryHref}>{secondaryBucket.key}</a></div></th>;
-                                                });
-                                                return [<th key={primaryBucket.key} className="rotate30 matrix-header__titles"><div><a href={primaryHref}>{primaryBucket.key}</a></div></th>].concat(secondaryColumns);
-                                            })}
+                            </div>
+                            <table className="matrix">
+                                <tbody>
+                                    {matrix.doc_count ?
+                                        <tr className="matrix-title">
+                                            <th className="matrix-title__spacer" />
+                                            <th className="matrix-title__text" colSpan={colCount + 1}>{matrix.x.label_target.toUpperCase()}</th>
                                         </tr>
+                                    : null}
+                                    <tr className="matrix-header">
+                                        <th className="matrix-header__controls">
+                                            <h3>{matrix.doc_count} results</h3>
+                                            <div className="btn-attached">
+                                                {matrix.doc_count && context.views ? context.views.map(view => <a href={view.href} key={view.icon} className="btn btn-info btn-sm btn-svgicon" title={view.title}>{svgIcon(view2svg[view.icon])}</a>) : ''}
+                                            </div>
+                                            {context.filters.length ?
+                                                <div className="clear-filters-control-matrix">
+                                                    <a href={context.matrix.clear_matrix}>Clear Filters <i className="icon icon-times-circle" /></a>
+                                                </div>
+                                            : null}
+                                        </th>
 
-                                        {/* Display each row of the matrix. This represents a
-                                            hierarchy the same as the experiment/annotation matrix.
-                                            `primaryBucket` holds the buckets for the top-level row
-                                            hierarchy while secondaryBucket refers to each bucket
-                                            within. The horizontal hierarchy gets specified within
-                                            the secondaryBucket objects. */}
-                                        {yBuckets.map((primaryBucket) => {
-                                            const secondaryRows = primaryBucket[secondaryYGrouping].buckets.map(secondaryBucket => (
+                                        {/* Display horizontal column headers */}
+                                        {xBuckets.map((primaryBucket) => {
+                                            // Display parent column titles with child column
+                                            // titles appended to it so we have a straight
+                                            // array of <th> elements.
+                                            const primaryHref = `${searchBase}&${primaryXGrouping}=${globals.encodedURIComponent(primaryBucket.key)}`;
+                                            const secondaryColumns = primaryBucket[secondaryXGrouping].buckets.map((secondaryBucket) => {
+                                                const secondaryHref = `${searchBase}&${primaryXGrouping}=${globals.encodedURIComponent(primaryBucket.key)}&${secondaryXGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}`;
+                                                return <th key={`${primaryBucket.key}${secondaryBucket.key}`} className="rotate30 matrix-header__titles"><div><a href={secondaryHref}>{secondaryBucket.key}</a></div></th>;
+                                            });
+                                            return [<th key={primaryBucket.key} className="rotate30 matrix-header__titles"><div><a href={primaryHref}>{primaryBucket.key}</a></div></th>].concat(secondaryColumns);
+                                        })}
+                                    </tr>
+
+                                    {/* Display each row of the matrix. This represents a
+                                        hierarchy the same as the experiment/annotation matrix.
+                                        `primaryBucket` holds the buckets for the top-level row
+                                        hierarchy while secondaryBucket refers to each bucket
+                                        within. The horizontal hierarchy gets specified within
+                                        the secondaryBucket objects. */}
+                                    {yBuckets.map((primaryBucket) => {
+                                        // Build links for the vertical matrix headers on the left
+                                        // which links to this target matrix page but with the
+                                        // clicked element added to the query string, and with the
+                                        // y.limit flag set.
+                                        const parsed = url.parse(matrixBase, true);
+                                        parsed.query[primaryYGrouping] = primaryBucket.key;
+                                        parsed.query['y.limit'] = null;
+                                        delete parsed.search; // this makes format compose the search string out of the query object
+                                        const groupHref = url.format(parsed);
+
+                                        const secondaryRows = primaryBucket[secondaryYGrouping].buckets.map((secondaryBucket) => {
+                                            // Each secondary row of the vertical header on the
+                                            // left links to the corresponding /search/ page.
+                                            const href = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}`;
+                                            return (
                                                 <tr>
-                                                    <th key={`${primaryBucket.key}${secondaryBucket.key}`}><a>{secondaryBucket.key}</a></th>
+                                                    <th key={`${primaryBucket.key}${secondaryBucket.key}`}><a href={href}>{secondaryBucket.key}</a></th>
                                                     {matrix.x.buckets.map((primaryXBucket) => {
                                                         const matchingXGroupBucket = secondaryBucket[primaryXGrouping].buckets.find(bucket => bucket.key === primaryXBucket.key);
                                                         if (matchingXGroupBucket) {
                                                             // Found a target bucket matching the
                                                             // current matrix target column
                                                             // section.
-                                                            return [<td />].concat(matchingXGroupBucket[secondaryXGrouping].map(value => (value ? <td>{value}</td> : <td />)));
+                                                            return [<td />].concat(matchingXGroupBucket[secondaryXGrouping].map((value, i) => {
+                                                                const cellHref = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}&${primaryXGrouping}=${globals.encodedURIComponent(matchingXGroupBucket.key)}&${secondaryXGrouping}=${globals.encodedURIComponent(primaryXBucket[secondaryXGrouping].buckets[i].key)}`;
+                                                                return value ? <td><a href={cellHref}>{value}</a></td> : <td />;
+                                                            }));
                                                         }
 
                                                         // No matching primary group for the
@@ -536,20 +554,20 @@ class MatrixTarget extends React.Component {
                                                         return [<td />].concat(primaryXBucket[secondaryXGrouping].buckets.map((() => <td />)));
                                                     })}
                                                 </tr>
-                                            ));
-                                            return (
-                                                [
-                                                    <tr key={primaryBucket.key}>
-                                                        <th colSpan={colCount + 1} style={{ textAlign: 'left' }}>
-                                                            <a>{primaryBucket.key}</a>
-                                                        </th>
-                                                    </tr>,
-                                                ].concat(secondaryRows)
                                             );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        });
+                                        return (
+                                            [
+                                                <tr key={primaryBucket.key}>
+                                                    <th colSpan={colCount + 1} style={{ textAlign: 'left' }}>
+                                                        <a href={groupHref}>{primaryBucket.key}</a>
+                                                    </th>
+                                                </tr>,
+                                            ].concat(secondaryRows)
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
