@@ -159,6 +159,21 @@ table.matrix th.group-all-groups-cell {
     }
 }
 
+.matrix-row {
+    @at-root #{&}__primary {
+        text-align: left !important;
+
+        a {
+            color: #fff !important;
+        }
+    }
+
+    @at-root #{&}__header {
+        background-color: #ddd;
+        border: solid 1px white;
+    }
+}
+
 .matrix-header {
     border-bottom: solid 1px #ddd;
 
@@ -169,5 +184,13 @@ table.matrix th.group-all-groups-cell {
 
     @at-root #{&}__titles {
         width: 10px !important;
+
+        @at-root #{&}--primary {
+            > div {
+                > a {
+                    color: #fff !important;
+                }
+            }
+        }
     }
 }

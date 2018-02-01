@@ -428,6 +428,10 @@ class MatrixTarget extends React.Component {
             ))
         );
 
+        // Make an array of colors corresponding to the ordering of biosample_type
+        const biosampleTypeColors = this.context.biosampleTypeColors.colorList(yBuckets.map(yBucket => yBucket.key));
+        const targetInvestigatedAsColors = this.context.targetInvestigatedAsColors.colorList(xBuckets.map(xBucket => xBucket.key));
+
         return (
             <div>
                 <div className="panel data-display main-panel">
@@ -499,7 +503,7 @@ class MatrixTarget extends React.Component {
                                         </th>
 
                                         {/* Display horizontal column headers */}
-                                        {xBuckets.map((primaryBucket) => {
+                                        {xBuckets.map((primaryBucket, i) => {
                                             // Display parent column titles with child column
                                             // titles appended to it so we have a straight
                                             // array of <th> elements.
@@ -508,7 +512,11 @@ class MatrixTarget extends React.Component {
                                                 const secondaryHref = `${searchBase}&${primaryXGrouping}=${globals.encodedURIComponent(primaryBucket.key)}&${secondaryXGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}`;
                                                 return <th key={`${primaryBucket.key}${secondaryBucket.key}`} className="rotate30 matrix-header__titles"><div><a href={secondaryHref}>{secondaryBucket.key}</a></div></th>;
                                             });
-                                            return [<th key={primaryBucket.key} className="rotate30 matrix-header__titles"><div><a href={primaryHref}>{primaryBucket.key}</a></div></th>].concat(secondaryColumns);
+                                            return [
+                                                <th key={primaryBucket.key} className="rotate30 matrix-header__titles--primary">
+                                                    <div style={{ backgroundColor: targetInvestigatedAsColors[i] }}><a href={primaryHref}>{primaryBucket.key}</a></div>
+                                                </th>,
+                                            ].concat(secondaryColumns);
                                         })}
                                     </tr>
 
@@ -518,7 +526,7 @@ class MatrixTarget extends React.Component {
                                         hierarchy while secondaryBucket refers to each bucket
                                         within. The horizontal hierarchy gets specified within
                                         the secondaryBucket objects. */}
-                                    {yBuckets.map((primaryBucket) => {
+                                    {yBuckets.map((primaryBucket, i) => {
                                         // Build links for the vertical matrix headers on the left
                                         // which links to this target matrix page but with the
                                         // clicked element added to the query string, and with the
@@ -535,14 +543,14 @@ class MatrixTarget extends React.Component {
                                             const href = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}`;
                                             return (
                                                 <tr>
-                                                    <th key={`${primaryBucket.key}${secondaryBucket.key}`}><a href={href}>{secondaryBucket.key}</a></th>
-                                                    {matrix.x.buckets.map((primaryXBucket) => {
+                                                    <th key={`${primaryBucket.key}${secondaryBucket.key}`} className="matrix-row__header"><a href={href}>{secondaryBucket.key}</a></th>
+                                                    {matrix.x.buckets.map((primaryXBucket, i) => {
                                                         const matchingXGroupBucket = secondaryBucket[primaryXGrouping].buckets.find(bucket => bucket.key === primaryXBucket.key);
                                                         if (matchingXGroupBucket) {
                                                             // Found a target bucket matching the
                                                             // current matrix target column
                                                             // section.
-                                                            return [<td />].concat(matchingXGroupBucket[secondaryXGrouping].map((value, i) => {
+                                                            return [<td style={{ backgroundColor: targetInvestigatedAsColors[i] }} />].concat(matchingXGroupBucket[secondaryXGrouping].map((value, i) => {
                                                                 const cellHref = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}&${primaryXGrouping}=${globals.encodedURIComponent(matchingXGroupBucket.key)}&${secondaryXGrouping}=${globals.encodedURIComponent(primaryXBucket[secondaryXGrouping].buckets[i].key)}`;
                                                                 return value ? <td><a href={cellHref}>{value}</a></td> : <td />;
                                                             }));
@@ -551,7 +559,7 @@ class MatrixTarget extends React.Component {
                                                         // No matching primary group for the
                                                         // columns, Generate enough empty cells
                                                         // to fill that part of the table.
-                                                        return [<td />].concat(primaryXBucket[secondaryXGrouping].buckets.map((() => <td />)));
+                                                        return [<td style={{ backgroundColor: targetInvestigatedAsColors[i] }} />].concat(primaryXBucket[secondaryXGrouping].buckets.map((() => <td />)));
                                                     })}
                                                 </tr>
                                             );
@@ -559,7 +567,7 @@ class MatrixTarget extends React.Component {
                                         return (
                                             [
                                                 <tr key={primaryBucket.key}>
-                                                    <th colSpan={colCount + 1} style={{ textAlign: 'left' }}>
+                                                    <th colSpan={colCount + 1} className="matrix-row__primary" style={{ backgroundColor: biosampleTypeColors[i] }}>
                                                         <a href={groupHref}>{primaryBucket.key}</a>
                                                     </th>
                                                 </tr>,
@@ -583,6 +591,8 @@ MatrixTarget.propTypes = {
 MatrixTarget.contextTypes = {
     location_href: PropTypes.string,
     navigate: PropTypes.func,
+    biosampleTypeColors: PropTypes.object, // Datacolor instance for biosample types
+    targetInvestigatedAsColors: PropTypes.object, // Datacolor instance for target.investigated_as
 };
 
 globals.contentViews.register(MatrixTarget, 'MatrixTarget');

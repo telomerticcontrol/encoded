@@ -89,6 +89,21 @@ const biosampleTypeList = [
     'in vitro differentiated cells',
     'induced pluripotent stem cell line',
 ];
+const targetInvestigatedAsList = [
+    'broad histone mark',
+    'chromatin remodeller',
+    'control',
+    'histone modification',
+    'histone',
+    'narrow histone mark',
+    'nucleotide modification',
+    'other context',
+    'other post-translational modification',
+    'recombinant protein',
+    'RNA binding protein',
+    'tag',
+    'transcription factor',
+];
 
 
 // See https://github.com/facebook/react/issues/2323 for an IE8 fix removed for Redmine #4755.
@@ -242,6 +257,7 @@ class App extends React.Component {
         // Make `project` and `biosample_type` color mappings for downstream modules to use.
         const projectColors = new DataColors(projectList);
         const biosampleTypeColors = new DataColors(biosampleTypeList);
+        const targetInvestigatedAsColors = new DataColors(targetInvestigatedAsList);
 
         return {
             listActionsFor: this.listActionsFor,
@@ -250,6 +266,7 @@ class App extends React.Component {
             portal,
             projectColors,
             biosampleTypeColors,
+            targetInvestigatedAsColors,
             fetch: this.fetch,
             navigate: this.navigate,
             adviseUnsavedChanges: this.adviseUnsavedChanges,
@@ -1023,6 +1040,7 @@ App.childContextTypes = {
     portal: PropTypes.object,
     projectColors: PropTypes.object,
     biosampleTypeColors: PropTypes.object,
+    targetInvestigatedAsColors: PropTypes.object,
     adviseUnsavedChanges: PropTypes.func,
     session: PropTypes.object,
     session_properties: PropTypes.object,
