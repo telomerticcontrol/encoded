@@ -546,20 +546,27 @@ class MatrixTarget extends React.Component {
                                                     <th key={`${primaryBucket.key}${secondaryBucket.key}`} className="matrix-row__header"><a href={href}>{secondaryBucket.key}</a></th>
                                                     {matrix.x.buckets.map((primaryXBucket, i) => {
                                                         const matchingXGroupBucket = secondaryBucket[primaryXGrouping].buckets.find(bucket => bucket.key === primaryXBucket.key);
+                                                        const groupColor = targetInvestigatedAsColors[i];
+                                                        const seriesColor = color(groupColor);
+
+                                                        // scale color between white and the series color
                                                         if (matchingXGroupBucket) {
                                                             // Found a target bucket matching the
                                                             // current matrix target column
                                                             // section.
-                                                            return [<td style={{ backgroundColor: targetInvestigatedAsColors[i] }} />].concat(matchingXGroupBucket[secondaryXGrouping].map((value, i) => {
-                                                                const cellHref = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}&${primaryXGrouping}=${globals.encodedURIComponent(matchingXGroupBucket.key)}&${secondaryXGrouping}=${globals.encodedURIComponent(primaryXBucket[secondaryXGrouping].buckets[i].key)}`;
-                                                                return value ? <td><a href={cellHref}>{value}</a></td> : <td />;
+                                                            return [<td style={{ backgroundColor: groupColor }} />].concat(matchingXGroupBucket[secondaryXGrouping].map((value, j) => {
+                                                                const cellColor = seriesColor.clone();
+                                                                cellColor.lightness(cellColor.lightness() + ((1 - (value / matrix.max_cell_doc_count)) * (100 - cellColor.lightness())));
+                                                                const textColor = cellColor.luminosity() > 0.5 ? '#000' : '#fff';
+                                                                const cellHref = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(secondaryBucket.key)}&${primaryXGrouping}=${globals.encodedURIComponent(matchingXGroupBucket.key)}&${secondaryXGrouping}=${globals.encodedURIComponent(primaryXBucket[secondaryXGrouping].buckets[j].key)}`;
+                                                                return value ? <td style={{ backgroundColor: cellColor.hexString() }}><a style={{ color: textColor }} href={cellHref}>{value}</a></td> : <td />;
                                                             }));
                                                         }
 
                                                         // No matching primary group for the
                                                         // columns, Generate enough empty cells
                                                         // to fill that part of the table.
-                                                        return [<td style={{ backgroundColor: targetInvestigatedAsColors[i] }} />].concat(primaryXBucket[secondaryXGrouping].buckets.map((() => <td />)));
+                                                        return [<td style={{ backgroundColor: groupColor }} />].concat(primaryXBucket[secondaryXGrouping].buckets.map((() => <td />)));
                                                     })}
                                                 </tr>
                                             );
