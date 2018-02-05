@@ -989,9 +989,9 @@ def matrix(context, request):
     result['@type'] = ['MatrixTarget'] if target_mode else ['Matrix']
     matrix = result['matrix'] = type_info.factory.matrix.copy()
     if not target_mode:
-        # Target matrices don't support x.limit nor y.limit.
+        # Target matrices don't support x.limit.
         matrix['x']['limit'] = request.params.get('x.limit', 20)
-        matrix['y']['limit'] = request.params.get('y.limit', 5)
+    matrix['y']['limit'] = request.params.get('y.limit', 5)
     matrix['search_base'] = request.route_path('search', slash='/') + search_base
     matrix['clear_matrix'] = (request.route_path(route_name, slash='/') + '?type=' + item_type +
                               '&target=%2A' if target_mode else '')

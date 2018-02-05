@@ -812,5 +812,44 @@
         "biosample_term_id": "UBERON:0001891",
         "accession": "ENCSR751STR",
         "uuid": "a4460c54-aece-43d2-bf52-dbaaa9298aaa"
+    },
+    {
+        "accession": "ENCSR937EVN",
+        "aliases": [
+            "bradley-bernstein:Project Element 2870"
+        ],
+        "assay_term_name": "ChIP-seq",
+        "award": "U54HG007010",
+        "biosample_term_id": "UBERON:0001159",
+        "biosample_term_name": "sigmoid colon",
+        "biosample_type": "tissue",
+        "date_released": "2018-02-04",
+        "internal_status": "unreviewed",
+        "internal_tags": [
+            "ENTEx"
+        ],
+        "lab": "/labs/bradley-bernstein/",
+        "status": "released",
+        "submitted_by": "aa57ecb5-3d0e-4b1f-9608-665785270ad7",
+        "target": "H3F3A-human"
+    },
+    {
+        "accession": "ENCSR715NEZ",
+        "aliases": [
+            "ali-mortazavi:e10.5-mouse-limb-mirna-seq"
+        ],
+        "assay_term_name": "microRNA-seq",
+        "award": "U54HG007010",
+        "biosample_term_id": "UBERON:0002101",
+        "biosample_term_name": "limb",
+        "biosample_type": "tissue",
+        "date_released": "2017-08-15",
+        "date_submitted": "2017-06-29",
+        "description": "miRNA-seq on embryonic 10.5 day mouse limb",
+        "internal_status": "unreviewed",
+        "lab": "/labs/bradley-bernstein/",
+        "status": "released",
+        "target": "H3K27me3-mouse",
+        "uuid": "7259ade7-b6c9-473d-bc10-060137d51e89"
     }
 ]

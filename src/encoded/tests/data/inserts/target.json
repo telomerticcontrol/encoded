@@ -455,5 +455,90 @@
         "label": "eGFP-ab",
         "organism": "/organisms/dmelanogaster/",
         "status": "current"
+    },
+    {
+        "dbxref": [
+            "ENSEMBL:ENSG00000163041",
+            "GeneID:3020",
+            "UniProtKB:P84243"
+        ],
+        "gene_name": "H3F3A",
+        "investigated_as": [
+            "histone",
+            "histone modification",
+            "broad histone mark"
+        ],
+        "label": "H3F3A",
+        "organism": "human",
+        "status": "current",
+        "uuid": "be61e1af-7fbf-4543-8226-9026f3816ac8"
+    },
+    {
+        "dbxref": [
+            "UniProtKB:P84228",
+            "MGI:2448355"
+        ],
+        "gene_name": "Hist2h3c1",
+        "investigated_as": [
+            "histone",
+            "histone modification",
+            "broad histone mark"
+        ],
+        "label": "H3K27me3",
+        "organism": "mouse",
+        "status": "current",
+        "uuid": "a1b236fc-38d5-4af5-a140-ede8bb6327c8"
+    },
+    {
+        "dbxref": [
+            "FlyBase:Histone H3",
+            "FlyBase:FBgn0001199",
+            "FlyBase:His3"
+        ],
+        "gene_name": "His3",
+        "investigated_as": [
+            "histone",
+            "histone modification",
+            "broad histone mark"
+        ],
+        "label": "H3K27me3",
+        "organism": "/organisms/dmelanogaster/",
+        "status": "current",
+        "uuid": "01bcac7b-2902-4153-b31b-a38f0e8f7211"
+    },
+    {
+        "dbxref": [
+            "UniProtKB:P0C0S5",
+            "HGNC:H2AZ",
+            "GeneID:3015",
+            "HGNC:H2A.Z"
+        ],
+        "gene_name": "H2AFZ",
+        "investigated_as": [
+            "histone",
+            "histone modification",
+            "narrow histone mark"
+        ],
+        "label": "H2AFZ",
+        "organism": "human",
+        "status": "current",
+        "uuid": "c21f310f-fb91-4505-b62c-c8c707696827"
+    },
+    {
+        "dbxref": [
+            "FlyBase:Histone H3",
+            "FlyBase:FBgn0001199",
+            "FlyBase:His3"
+        ],
+        "gene_name": "His3",
+        "investigated_as": [
+            "histone",
+            "histone modification",
+            "narrow histone mark"
+        ],
+        "label": "H3K27ac",
+        "organism": "/organisms/dmelanogaster/",
+        "status": "current",
+        "uuid": "9e6c7ada-61ef-49e2-b7d5-c59733e67e7b"
     }
 ]
