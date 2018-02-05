@@ -288,5 +288,17 @@
         "title": "A DATA COORDINATING CENTER FOR ENCODE",
         "url": "https://projectreporter.nih.gov/project_info_description.cfm?aid=9247374&icde=32923597&ddparam=&ddvalue=&ddsub=&cr=1&csb=default&cs=ASC&pball=",
         "viewing_group": "ENCODE4"
+    },
+    {
+        "description": "In multicellular organisms, differentiated cells exhibit specialized functions that are specified by distinct transcriptional and epigenetic programs. Differential use of regulatory elements defines most previously studied lineage specific gene expression programs. However, challenges such as stress, injury, or infection can elicit adaptive or pathogenic responses in differentiated cells leading to a change in their functional state and transcriptional output. Cells of the immune system offer a powerful experimental model for dissection of genomic mechanisms underlying establishment of distinct differentiation and activation states. In this proposal, we study distinct CD4+ T cell populations as they transition from \"na\u00bfve\" (or resting) to activated states with opposing function: effector T cells that promote - and activated regulatory T cells (Treg) that suppress - immune response and associated inflammation. Resting Treg cells emerge during differentiation as a stable lineage of T lymphocytes distinct from na\u00bfve CD4+ T cells. We will use sophisticated genetic mouse models to generate a short-term inflammatory disorder and investigate genomic features of activated Treg and T effector cells and their resting counterparts in an inflammatory context in vivo. We will profile the enhancer and transcriptional landscapes of the four cell states using DNase-seq, TF and histone modification ChIP-seq, and bulk and single-cell RNA-seq profiles from ex vivo isolated cells. Using these comprehensive data sets, we will: (1) decode the changes in the enhancer landscape that govern the activation of distinct CD4+ T lymphocyte populations; (2) model the differential transcriptional output of genes in these cells as a function of the sequence and activity of their enhancers; and (3) model the expression distribution of individual genes over a population of cells as a function of the state space of their enhancers. Given the central role that Treg cells play in suppressing immune-mediated inflammation in diverse biological contexts ranging from autoimmunity, injury, and infection to pregnancy and metabolic disease as well as emerging understanding of their pivotal role in cancer, our study has broad relevance to human health and major practical significance.",
+        "end_date": "2017-11-30",
+        "name": "U01HG007893",
+        "pi": "christina.leslie@gmail.com",
+        "project": "GGR",
+        "rfa": "GGR",
+        "start_date": "2015-01-05",
+        "status": "current",
+        "title": "DECODING IN VIVO REGULATORY PROGRAMS OF CD4+ T LYMPHOCYTE POPULATIONS IN INFLAMMA",
+        "viewing_group": "GGR"
     }
 ]

@@ -12,7 +12,11 @@
         "status": "released",
         "date_submitted": "2015-01-20",
         "date_released": "2016-01-01",
-        "internal_tags":["DREAM", "ENTEx", "ENCORE"],
+        "internal_tags": [
+            "DREAM",
+            "ENTEx",
+            "ENCORE"
+        ],
         "submitted_by": "dignissim.euismod@amet.habitant",
         "uuid": "5a6d5a57-e62d-44b9-a1bd-5d1815247348"
     },
@@ -28,7 +32,9 @@
         "lab": "thomas-gingeras",
         "status": "released",
         "date_submitted": "2015-02-20",
-        "supersedes": ["ENCSR000AES"],
+        "supersedes": [
+            "ENCSR000AES"
+        ],
         "date_released": "2016-01-01",
         "submitted_by": "dignissim.euismod@amet.habitant",
         "uuid": "a357b33b-cdaa-4312-91c0-086bfec24181"
@@ -91,7 +97,7 @@
         "documents": [
             "encode:Snyder_Histone_Mouse_protocol"
         ],
-       "lab": "sherman-weissman",
+        "lab": "sherman-weissman",
         "possible_controls": [
             "df02f3f9-a6d4-40e4-a8dc-c1c7387e4556"
         ],
@@ -204,7 +210,9 @@
         "biosample_term_name": "K562",
         "biosample_type": "immortalized cell line",
         "description": "RNA Evaluation K562 Long Total from Graveley",
-        "internal_tags": ["dbGaP"],
+        "internal_tags": [
+            "dbGaP"
+        ],
         "lab": "brenton-graveley",
         "status": "released",
         "date_submitted": "2015-10-20",
@@ -279,7 +287,9 @@
         "date_released": "2016-01-01",
         "submitted_by": "facilisi.tristique@potenti.vivamus",
         "uuid": "4ae10d69-f6fa-4757-b243-821dd8a9bf25",
-        "supersedes": ["ENCSR000ACT"]
+        "supersedes": [
+            "ENCSR000ACT"
+        ]
     },
     {
         "_test": "patch users",
@@ -296,7 +306,10 @@
         "date_released": "2016-01-01",
         "submitted_by": "facilisi.tristique@potenti.vivamus",
         "uuid": "a099b9ac-50c0-4c96-a3eb-9fa032388ebf",
-        "supersedes": ["ENCSR000ACT", "ENCSR001ACT"]
+        "supersedes": [
+            "ENCSR000ACT",
+            "ENCSR001ACT"
+        ]
     },
     {
         "_test": "Bind and Seq",
@@ -404,7 +417,9 @@
         "biosample_term_name": "A549",
         "biosample_type": "immortalized cell line",
         "target": "/targets/TCF4-human/",
-        "possible_controls": ["ENCSR001CTL"],
+        "possible_controls": [
+            "ENCSR001CTL"
+        ],
         "description": "TCF4 ChIP-seq on A549 cell line treated with 100 nM dexamethasone for 8 hours.",
         "lab": "robert-waterston",
         "status": "released",
@@ -422,7 +437,9 @@
         "biosample_term_id": "EFO:0001086",
         "biosample_term_name": "A549",
         "biosample_type": "immortalized cell line",
-        "possible_controls": ["ENCSR001CTL"],
+        "possible_controls": [
+            "ENCSR001CTL"
+        ],
         "target": "/targets/TCF4-human",
         "description": "TCF4 ChIP-seq on A549 cell line treated with 100 nM dexamethasone for 10 hours.",
         "lab": "robert-waterston",
@@ -449,7 +466,7 @@
         "submitted_by": "dignissim.euismod@amet.habitant",
         "uuid": "fe9fe0cb-b859-461c-8d0f-4fa5f8e9377f"
     },
-        {
+    {
         "_test": "treatment concentration series 1",
         "accession": "ENCSR001CON",
         "assay_term_name": "ChIP-seq",
@@ -458,7 +475,9 @@
         "biosample_term_name": "A549",
         "biosample_type": "immortalized cell line",
         "target": "/targets/TCF4-human/",
-        "possible_controls": ["ENCSR001CTL"],
+        "possible_controls": [
+            "ENCSR001CTL"
+        ],
         "description": "TCF4 ChIP-seq on A549 cell line treated with 100 nM dexamethasone for 8 hours.",
         "lab": "robert-waterston",
         "status": "released",
@@ -475,7 +494,9 @@
         "biosample_term_id": "EFO:0001086",
         "biosample_term_name": "A549",
         "biosample_type": "immortalized cell line",
-        "possible_controls": ["ENCSR001CTL"],
+        "possible_controls": [
+            "ENCSR001CTL"
+        ],
         "target": "/targets/TCF4-human",
         "description": "TCF4 ChIP-seq on A549 cell line treated with 80 nM dexamethasone for 8 hours.",
         "lab": "robert-waterston",
@@ -492,7 +513,9 @@
         "biosample_term_name": "A549",
         "biosample_type": "immortalized cell line",
         "target": "/targets/TCF4-human/",
-        "possible_controls": ["ENCSR001CTL"],
+        "possible_controls": [
+            "ENCSR001CTL"
+        ],
         "description": "TCF4 ChIP-seq on A549 cell line treated with 60 nM dexamethasone for 8 hours.",
         "lab": "robert-waterston",
         "status": "released",
@@ -515,7 +538,9 @@
         "status": "released",
         "date_submitted": "2015-02-20",
         "date_released": "2016-01-01",
-        "aliases": ["robert-waterston:experiment_RB884_80_1"],
+        "aliases": [
+            "robert-waterston:experiment_RB884_80_1"
+        ],
         "submitted_by": "dignissim.euismod@amet.habitant",
         "uuid": "25ee48a4-d372-42a8-9366-33a8ca387daf"
     },
@@ -533,7 +558,9 @@
         "status": "released",
         "date_submitted": "2015-03-20",
         "date_released": "2016-01-01",
-        "aliases": ["robert-waterston:experiment_RB884_680_1"],
+        "aliases": [
+            "robert-waterston:experiment_RB884_680_1"
+        ],
         "submitted_by": "dignissim.euismod@amet.habitant",
         "uuid": "8669b9e5-5b8e-4814-8625-6fbb29372b84"
     },
@@ -551,7 +578,9 @@
         "status": "revoked",
         "date_submitted": "2015-08-24",
         "date_released": "2016-01-01",
-        "aliases": ["robert-waterston:experiment_RB884_880_1"],
+        "aliases": [
+            "robert-waterston:experiment_RB884_880_1"
+        ],
         "submitted_by": "dignissim.euismod@amet.habitant",
         "uuid": "785f86d8-9d3e-4c29-b007-b1b615ba6076"
     },
@@ -851,5 +880,44 @@
         "status": "released",
         "target": "H3K27me3-mouse",
         "uuid": "7259ade7-b6c9-473d-bc10-060137d51e89"
+    },
+    {
+        "accession": "ENCSR077HGR",
+        "aliases": [
+            "bradley-bernstein:Project Element 3138"
+        ],
+        "assay_term_name": "ChIP-seq",
+        "award": "UM1HG009390",
+        "biosample_term_id": "UBERON:0011878",
+        "biosample_term_name": "muscle layer of esophagus",
+        "biosample_type": "tissue",
+        "date_submitted": "2015-10-20",
+        "date_released": "2016-01-01",
+        "internal_tags": [
+            "ENTEx"
+        ],
+        "lab": "brenton-graveley",
+        "status": "released",
+        "submitted_by": "platea.a@volutpat.viverra",
+        "target": "H3K4me3-human",
+        "uuid": "23e9191c-082d-4c14-81d4-222ba31dab00"
+    },
+    {
+        "accession": "ENCSR896QWJ",
+        "aliases": [
+            "christina-leslie:rTr_H3K27ac"
+        ],
+        "assay_term_name": "ChIP-seq",
+        "award": "U01HG007893",
+        "biosample_term_id": "CL:0000815",
+        "biosample_term_name": "regulatory T cell",
+        "biosample_type": "primary cell",
+        "date_released": "2017-03-07",
+        "date_submitted": "2016-08-05",
+        "lab": "christina-leslie",
+        "status": "released",
+        "submitted_by": "christina.leslie@gmail.com",
+        "target": "6d25d67e-6ba3-4150-ad46-98b77ebce946",
+        "uuid": "ed6b365b-c560-4c58-8fa3-3e8b1b997b92"
     }
 ]

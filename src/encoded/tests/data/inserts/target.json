@@ -329,7 +329,8 @@
         "gene_name": "HIST2H3C",
         "investigated_as": [
             "histone modification",
-            "histone"
+            "histone",
+            "narrow histone mark"
         ],
         "label": "H3K4me3",
         "organism": "human",
@@ -540,5 +541,21 @@
         "organism": "/organisms/dmelanogaster/",
         "status": "current",
         "uuid": "9e6c7ada-61ef-49e2-b7d5-c59733e67e7b"
+    },
+    {
+        "dbxref": [
+            "UniProtKB:P84228",
+            "MGI:2448355"
+        ],
+        "gene_name": "Hist2h3c1",
+        "investigated_as": [
+            "histone",
+            "histone modification",
+            "narrow histone mark"
+        ],
+        "label": "H3K27ac",
+        "organism": "mouse",
+        "status": "current",
+        "uuid": "6d25d67e-6ba3-4150-ad46-98b77ebce946"
     }
 ]

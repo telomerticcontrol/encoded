@@ -619,5 +619,25 @@
         "status": "current",
         "title": "ENCODE Processing Pipeline",
         "uuid": "44324de6-c057-451f-a8f1-1d9a6cb9875d"
+    },
+    {
+        "address1": "",
+        "awards": [
+            "U01HG007893"
+        ],
+        "city": "New York",
+        "country": "USA",
+        "fax": "(000)000-0000",
+        "institute_label": "MSKCC",
+        "institute_name": "Memorial Sloan-Kettering Cancer Center",
+        "name": "christina-leslie",
+        "phone1": "(000)000-0000",
+        "phone2": "",
+        "pi": "christina.leslie@gmail.com",
+        "postal_code": "00000",
+        "state": "NY",
+        "status": "current",
+        "title": "Christina Leslie, MSKCC",
+        "uuid": "dc1c6eed-8f2e-425d-977a-91f71df2962e"
     }
 ]
