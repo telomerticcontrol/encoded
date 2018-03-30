@@ -11,11 +11,12 @@
 # Associate elastic-ip address for instance.encodedcc.org NS record.
 # $ aws ec2 associate-address --public-ip 52.25.250.155 --region us-west-2 --instance-id i-xxxx
 
-
-bootcmd:
-- cloud-init-per once ssh-users-ca echo "TrustedUserCAKeys /etc/ssh/users_ca.pub" >> /etc/ssh/sshd_config
+ssh_authorized_keys:
+  - %(LOCAL_SSH_KEY)s
 
 runcmd:
+- sudo -u ubuntu mv /home/ubuntu/.ssh/authorized_keys /home/ubuntu/.ssh/authorized_keys2
+- sudo -u ubuntu aws s3 cp --region=us-west-2 %(S3_AUTH_KEYS)s /home/ubuntu/.ssh/authorized_keys
 - set -e
 - sudo -u ubuntu GOPATH=/home/ubuntu/gobuild go get github.com/ConradIrwin/aws-name-server
 - cp /home/ubuntu/gobuild/bin/aws-name-server /usr/local/bin/
@@ -61,6 +62,3 @@ write_files:
     setuid nobody
     setgid nogroup
     exec /usr/local/bin/aws-name-server --aws-region us-west-2 --domain instance.encodedcc.org
-
-- path: /etc/ssh/users_ca.pub
-  content: ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAv/ymOcnN4LhM4NACc3Or116XXJ6KytuOgB/+1qNkOFBqBosrn7cmJ35rsoNHRgYNrCsRE9ch74RKsN6H72FtSJgBhGh/9oUK7Os6Fqt3/ZZXxgxIx6ubs/MTgrxrAnujiBxUXMXQhLKMriNMpo8mt4nGYVtLk9PBjiyfncaS8H9ZKoNio9dhP8bmTuYvioAI35dqKdSlVLyzr/XkZxia8Ki+pQ0N6uuiEwMR3ToM+LSp8wpFOOAiu4PEAujRW7us/+1hlpKWfn0J7/V3826joHE+I967Vg/+ikcVhF77JjK1nib879VgCWfmn1HPQosIpk4yJfVgGvRVI7I2nfBPVw== encoded@demo-l.encodedcc.org
