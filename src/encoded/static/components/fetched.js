@@ -142,6 +142,7 @@ export class FetchedData extends React.Component {
         const params = [];
         let communicating = false;
         const children = [];
+        const { addCss } = this.props;
 
         // Collect <Param> and non-<Param> child components into appropriate arrays
         if (this.props.children) {
@@ -207,7 +208,7 @@ export class FetchedData extends React.Component {
 
         // Successfully got data. Display in the web page
         return (
-            <div className="done">
+            <div className={`done${addCss ? ` ${addCss}` : ''}`}>
                 {children.map((child, i) => React.cloneElement(child, _.extend({ key: i }, this.props, this.state)))}
                 {params}
             </div>
@@ -215,12 +216,17 @@ export class FetchedData extends React.Component {
     }
 }
 
-FetchedData.contextTypes = {
-    session: PropTypes.object,
+FetchedData.propTypes = {
+    addCss: PropTypes.string, // CSS class string to add to results <div>
+    children: PropTypes.node.isRequired,
 };
 
-FetchedData.propTypes = {
-    children: PropTypes.node.isRequired,
+FetchedData.defaultProps = {
+    addCss: '',
+};
+
+FetchedData.contextTypes = {
+    session: PropTypes.object,
 };
 
 

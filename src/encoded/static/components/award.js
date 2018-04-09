@@ -46,7 +46,7 @@ function drawDonutCenter(chart) {
     const height = chart.chart.height;
     const ctx = chart.chart.ctx;
     // Undraws donut centers for Cumulative Line Chart and Status Stacked Bar Chart.
-    if (canvasId === 'myGraph' || canvasId === 'status-chart-experiments-chart') {
+    if (canvasId === 'myGraph' || canvasId === 'status-chart-experiments-chart' || canvasId === 'library-counts-chart') {
         ctx.clearRect(0, 0, width, height);
     } else {
         const data = chart.data.datasets[0].data;
