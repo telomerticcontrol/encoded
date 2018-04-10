@@ -169,7 +169,7 @@ LibraryCountsChartRenderer.defaultProps = {
 
 
 // Externally visible component that performs a GET request to search for Experiments with at least
-// one library.
+// one library, and then displays the result in a column chart.
 const LibraryCountsChart = ({ searchQuery }) => (
     <FetchedData addCss="award-charts__chart">
         <Param name="experimentReplicates" url={`/search/?type=Experiment&field=replicates.library.accession&limit=all${searchQuery}`} />
