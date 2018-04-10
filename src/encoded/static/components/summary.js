@@ -382,7 +382,7 @@ class SummaryData extends React.Component {
                 <div className="summary-content__snapshot">
                     {labs ? <LabChart labs={labs} linkUri={linkUri} ident="experiments" /> : null}
                     {assays ? <CategoryChart categoryData={assays} categoryFacet="assay_title" title="Assay" linkUri={linkUri} ident="assay" /> : null}
-                    <LibraryCountsChart />
+                    <LibraryCountsChart searchQuery={searchQuery} />
                 </div>
                 <div className="summary-content__statistics">
                     <ExperimentDate experiments={context} panelCss="summary-content__panel" panelHeadingCss="summary-content__panel-heading" />

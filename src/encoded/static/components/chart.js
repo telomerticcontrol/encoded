@@ -8,17 +8,17 @@ import { FetchedData, Param } from './fetched';
  *
  * @param {string} chartId - Root HTML id of div to draw the chart into. Supply <divs> with
  *         `chartId`-chart for the chart canvas, and `chartId`-legend for its legend.
- * @param {array} categories - Array of the names of each set of data sharing this chart, allowing
- *         for overlapping bar charts. These names get displayed in the legend.
  * @param {array} datasets - Array of objects, each one describing one dataset sharing the chart.
  *         * name - Name of the dataset; used for the legend
  *         * color - Hex color of all the columns for this dataset
  *         * values - Array of number values to plot on the Y-axis of the chart; should have the
  *                    same number of entries as the `categories` parameter.
+ * @param {array} categories - Array of the names of each set of data sharing this chart, allowing
+ *         for overlapping bar charts. These names get displayed in the legend.
  * @param {bool} stacked - True if columns display as stacked; False if overlapped
  * @return {promise}
  */
-const renderColumnChart = (chartId, categories, datasets, stacked) => (
+const renderColumnChart = (chartId, datasets, categories, stacked) => (
     new Promise((resolve) => {
         require.ensure(['chart.js'], (require) => {
             const Chart = require('chart.js');
@@ -72,10 +72,28 @@ const renderColumnChart = (chartId, categories, datasets, stacked) => (
     })
 );
 
-export { renderColumnChart };
+
+const updateColumnChart = (chart, datasets) => {
+    const chartDatasets = [];
+    datasets.forEach((dataset) => {
+        chartDatasets.push({
+            label: dataset.name || '',
+            backgroundColor: dataset.color,
+            data: dataset.values,
+        });
+    });
+
+    chart.data.datasets = chartDatasets;
+    chart.update();
+};
 
 
 class LibraryCountsChartRenderer extends React.Component {
+    constructor() {
+        super();
+        this.chart = null;
+    }
+
     componentDidMount() {
         const { experimentReplicates } = this.props;
 
@@ -95,7 +113,38 @@ class LibraryCountsChartRenderer extends React.Component {
             color: '#2f62cf',
             values: libraryCountCategories,
         };
-        renderColumnChart('library-counts', ['0', '1', '2', '3', '4', '5+'], [libraryCountDataset]);
+        renderColumnChart('library-counts', [libraryCountDataset], ['0', '1', '2', '3', '4', '5+']).then((chart) => { this.chart = chart; });
+    }
+
+    componentDidUpdate() {
+        if (this.chart) {
+            const { experimentReplicates } = this.props;
+
+            // Initialize our data array to count experiments with 0, 1, 2, 3, 4, or 5+ libraries.
+            const libraryCountCategories = [0, 0, 0, 0, 0, 0];
+
+            // Loop through every experiment and get each library count, then add it to the corresponding
+            // count category to use in the graph.
+            experimentReplicates['@graph'].forEach((experiment) => {
+                const libraryCount = experiment.replicates ? experiment.replicates.length : 0;
+                libraryCountCategories[libraryCount >= 5 ? 5 : libraryCount] += 1;
+            });
+
+            // Loop through every experiment and get each library count, then add it to the corresponding
+            // count category to use in the graph.
+            experimentReplicates['@graph'].forEach((experiment) => {
+                const libraryCount = experiment.replicates ? experiment.replicates.length : 0;
+                libraryCountCategories[libraryCount >= 5 ? 5 : libraryCount] += 1;
+            });
+
+            // Build the dataset for the charting function and render the chart.
+            const libraryCountDataset = {
+                name: 'Experiment library counts',
+                color: '#2f62cf',
+                values: libraryCountCategories,
+            };
+            updateColumnChart(this.chart, [libraryCountDataset]);
+        }
     }
 
     render() {
@@ -123,11 +172,19 @@ LibraryCountsChartRenderer.defaultProps = {
 };
 
 
-const LibraryCountsChart = () => (
+const LibraryCountsChart = ({ searchQuery }) => (
     <FetchedData addCss="award-charts__chart">
-        <Param name="experimentReplicates" url="/search/?type=Experiment&field=replicates.library.accession&limit=all" />
+        <Param name="experimentReplicates" url={`/search/?type=Experiment&field=replicates.library.accession&limit=all${searchQuery}`} />
         <LibraryCountsChartRenderer />
     </FetchedData>
 );
+
+LibraryCountsChart.propTypes = {
+    searchQuery: PropTypes.string, // Query string to add to this component's search query
+};
+
+LibraryCountsChart.defaultProps = {
+    searchQuery: '',
+};
 
 export { LibraryCountsChart };
