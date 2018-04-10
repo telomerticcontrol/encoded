@@ -6,7 +6,7 @@ import url from 'url';
 import { Panel, PanelBody } from '../libs/bootstrap/panel';
 import { svgIcon } from '../libs/svg-icons';
 import { LabChart, CategoryChart, ExperimentDate, createBarChart } from './award';
-import { LibraryCountsChart } from './chart';
+import LibraryCountsChart from './chart';
 import * as globals from './globals';
 import { FacetList } from './search';
 import { getObjectStatuses } from './statuslabel';

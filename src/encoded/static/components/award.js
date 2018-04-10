@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import _ from 'underscore';
 import moment from 'moment';
 import { Panel, PanelHeading, PanelBody } from '../libs/bootstrap/panel';
+import LibraryCountsChart from './chart';
 import DataColors from './datacolors';
 import { FetchedData, Param } from './fetched';
 import * as globals from './globals';
@@ -1277,7 +1278,7 @@ function generateUpdatedSpeciesArray(categories, query, updatedSpeciesArray) {
 }
 
 const ChartRenderer = (props) => {
-    const { award, experiments, annotations, antibodies, biosamples, handleClick, selectedOrganisms, unreplicated, isogenic, anisogenic, controls } = props;
+    const { award, experiments, annotations, antibodies, biosamples, handleClick, selectedOrganisms, controls } = props;
 
     // Put all search-related configuration data in one consistent place.
     const searchData = {
@@ -1475,18 +1476,7 @@ const ChartRenderer = (props) => {
                                     selectedOrganisms={updatedGenusArray}
                                     objectQuery={ExperimentQuery}
                                 />
-                                <StatusExperimentChart
-                                    award={award}
-                                    experiments={experiments}
-                                    statuses={experimentsConfig.statuses || []}
-                                    linkUri={experimentsConfig.linkUri}
-                                    ident={experimentsConfig.ident}
-                                    unreplicated={unreplicated}
-                                    isogenic={isogenic}
-                                    anisogenic={anisogenic}
-                                    selectedOrganisms={updatedGenusArray}
-                                    objectQuery={ExperimentQuery}
-                                />
+                                <LibraryCountsChart searchQuery={`${ExperimentQuery}&award.name=${award.name}&target.investigated_as!=control`} />
                             </div>
                         </div>
                     :
@@ -1578,9 +1568,6 @@ ChartRenderer.propTypes = {
     annotations: PropTypes.object, // Search result of matching annotations
     antibodies: PropTypes.object, // Search result of matching antibodies
     biosamples: PropTypes.object, // Search result of matching biosamples
-    unreplicated: PropTypes.object,
-    isogenic: PropTypes.object,
-    anisogenic: PropTypes.object,
     controls: PropTypes.object,
     handleClick: PropTypes.func.isRequired, // Function to call when a button is clicked
     selectedOrganisms: PropTypes.array, // Array of currently selected buttons
