@@ -6,8 +6,7 @@ import url from 'url';
 import { Panel, PanelBody } from '../libs/bootstrap/panel';
 import { svgIcon } from '../libs/svg-icons';
 import { LabChart, CategoryChart, ExperimentDate, createBarChart } from './award';
-import renderColumnChart from './chart';
-import { FetchedData, Param } from './fetched';
+import { LibraryCountsChart } from './chart';
 import * as globals from './globals';
 import { FacetList } from './search';
 import { getObjectStatuses } from './statuslabel';
@@ -311,54 +310,6 @@ SummaryVerticalFacets.contextTypes = {
 };
 
 
-class LibraryCountsChart extends React.Component {
-    componentDidMount() {
-        const { experimentReplicates } = this.props;
-
-        // Initialize our data array to count experiments with 0, 1, 2, 3, 4, or 5+ libraries.
-        const libraryCountCategories = [0, 0, 0, 0, 0, 0];
-
-        // Loop through every experiment and get each library count, then add it to the corresponding
-        // count category to use in the graph.
-        experimentReplicates['@graph'].forEach((experiment) => {
-            const libraryCount = experiment.replicates ? experiment.replicates.length : 0;
-            libraryCountCategories[libraryCount >= 5 ? 5 : libraryCount] += 1;
-        });
-
-        // Build the dataset for the charting function and render the chart.
-        const libraryCountDataset = {
-            name: 'Experiment library counts',
-            color: '#2f62cf',
-            values: libraryCountCategories,
-        };
-        renderColumnChart('library-counts', ['0', '1', '2', '3', '4', '5+'], [libraryCountDataset]);
-    }
-
-    render() {
-        return (
-            <div>
-                <div className="title">
-                    Libraries per experiment
-                </div>
-                <div className="award-charts__visual">
-                    <div id="library-counts">
-                        <canvas id="library-counts-chart" />
-                    </div>
-                </div>
-            </div>
-        );
-    }
-}
-
-LibraryCountsChart.propTypes = {
-    experimentReplicates: PropTypes.object, // Actually required, but comes from GET request
-};
-
-LibraryCountsChart.defaultProps = {
-    experimentReplicates: null,
-};
-
-
 // Update all charts to resize themselves on print.
 const printHandler = () => {
     Object.keys(window.Chart.instances).forEach((id) => {
@@ -419,14 +370,6 @@ class SummaryData extends React.Component {
             }
         }
 
-        // Get the status data with a process completely different from the others because it comes
-        // in its own property in the /summary/ context. Start by getting the name of the property
-        // that contains the status data, as well as the number of items within it.
-        const statusProp = context.summary.grouping[0];
-        const statusSection = context.summary[statusProp];
-        const statusDataCount = statusSection.doc_count;
-        const statusData = statusSection[statusProp].buckets;
-
         // Collect selected facet terms to add to the base linkUri.
         let searchQuery = '';
         if (context.filters && context.filters.length) {
@@ -439,10 +382,7 @@ class SummaryData extends React.Component {
                 <div className="summary-content__snapshot">
                     {labs ? <LabChart labs={labs} linkUri={linkUri} ident="experiments" /> : null}
                     {assays ? <CategoryChart categoryData={assays} categoryFacet="assay_title" title="Assay" linkUri={linkUri} ident="assay" /> : null}
-                    <FetchedData addCss="award-charts__chart">
-                        <Param name="experimentReplicates" url="/search/?type=Experiment&field=replicates.library.accession&limit=all" />
-                        <LibraryCountsChart />
-                    </FetchedData>
+                    <LibraryCountsChart />
                 </div>
                 <div className="summary-content__statistics">
                     <ExperimentDate experiments={context} panelCss="summary-content__panel" panelHeadingCss="summary-content__panel-heading" />
