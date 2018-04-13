@@ -877,17 +877,14 @@ class App extends React.Component {
     }
 
     render() {
-        console.log('render app me');
+        console.log('render app');
         let content;
         let containerClass;
         let context = this.state.context;
-        console.log(context);
         const hrefUrl = url.parse(this.state.href);
-        console.log(hrefUrl);
         // Switching between collections may leave component in place
         const key = context && context['@id'] && context['@id'].split('?')[0];
         const currentAction = this.currentAction();
-        console.log(currentAction);
         const isHomePage = context.default_page && context.default_page.name === 'homepage' && (!hrefUrl.hash || hrefUrl.hash === '#logged-out');
         if (isHomePage) {
             context = context.default_page;
@@ -899,8 +896,6 @@ class App extends React.Component {
             }
             if (context) {
                 const ContentView = globals.contentViews.lookup(context, currentAction);
-                console.log('Content view');
-                console.log(ContentView);
                 content = <ContentView context={context} />;
                 containerClass = 'container';
             }
