@@ -198,7 +198,7 @@ def quality_metric(context, request):
         'exp': experiment_data,
         'file': file_data,
         'rows': rows,
-        'title': 'Quality metric report',
-        '@type': ['QMReport']
+        'title': 'Histone quality metric report',
+        '@type': ['HistoneQCReport']
     }
 

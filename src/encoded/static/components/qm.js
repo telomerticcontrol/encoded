@@ -1,21 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import _ from 'underscore';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from '../libs/bootstrap/modal';
-import { Panel, PanelHeading, PanelBody } from '../libs/bootstrap/panel';
-import { collapseIcon } from '../libs/svg-icons';
-import { AttachmentPanel } from './doc';
-import { FetchedData, Param } from './fetched';
 import * as globals from './globals';
 
 
-class QMReport extends React.Component {
+class HistoneQCReport extends React.Component {
     constructor() {
         super();
+        this.setState({'data': this.props.context.rows});
     }
 
     componentWillMount() {
-        this.setState({'data': this.props.context.rows});
+        //this.setState({'data': this.props.context.rows});
     }
 
     render() {
@@ -77,5 +72,5 @@ class QMReport extends React.Component {
     }
 }
 
-globals.contentViews.register(QMReport, 'QMReport');
+globals.contentViews.register(HistoneQCReport, 'HistoneQCReport');
 
