@@ -23,7 +23,8 @@ class QMReport extends React.Component {
         console.log(this.props.context.rows);
         return (<div>
                 <table>
-                    <tbody>
+                <tbody>
+                        <th>number</th>
                         <th>experiment_accession</th>
                         <th>experiment_status</th>
                         <th>date</th>
@@ -45,7 +46,8 @@ class QMReport extends React.Component {
                         <th>quality_metric_of</th>
                          {this.state.data.map((row, idx) => {
                               return (
-                                   <tr key={idx}>
+                                      <tr key={idx}>
+                                      <td>{idx}</td>
                                       <td>{row.experiment_accession}</td>
                                       <td>{row.experiment_status}</td>
                                       <td>{row.date}</td>
