@@ -6,11 +6,10 @@ import * as globals from './globals';
 class HistoneQCReport extends React.Component {
     constructor() {
         super();
-        this.setState({'data': this.props.context.rows});
     }
 
     componentWillMount() {
-        //this.setState({'data': this.props.context.rows});
+        this.setState({'data': this.props.context.rows});
     }
 
     render() {
