@@ -50,8 +50,8 @@ def includeme(config):
 
 class VisIndexerState(IndexerState):
     # Accepts handoff of uuids from primary indexer. Keeps track of uuids and vis_indexer state by cycle.
-    def __init__(self, es, index):
-        super(VisIndexerState, self).__init__(es, index, title='vis')
+    def __init__(self, elastic_search, index):
+        super(VisIndexerState, self).__init__(elastic_search, index, title='vis')
         self.viscached_set      = self.title + '_viscached'
         self.success_set        = self.viscached_set
         self.cleanup_last_cycle.append(self.viscached_set)  # Clean up at beginning of next cycle
@@ -245,7 +245,7 @@ def all_visualizable_uuids(registry):
 class VisIndexer(Indexer):
     def __init__(self, registry):
         super(VisIndexer, self).__init__(registry)
-        self.state = VisIndexerState(self.es, self.index)  # WARNING, race condition is avoided because there is only one worker
+        self.state = VisIndexerState(self.elastic_search, self.index)  # WARNING, race condition is avoided because there is only one worker
 
     def get_from_es(request, comp_id):
         '''Returns composite json blob from elastic-search, or None if not found.'''
@@ -257,7 +257,7 @@ class VisIndexer(Indexer):
         # First get the object currently in es
         try:
             result = self.esstorage.get_by_uuid(uuid)  # No reason to restrict by version and that could interfere with reindex all signal.
-            #result = self.es.get(index=self.index, id=str(uuid), version=xmin, version_type='external_gte')
+            #result = self.elastic_search.get(index=self.index, id=str(uuid), version=xmin, version_type='external_gte')
             doc = result.source
         except StatementError:
             # Can't reconnect until invalid transaction is rolled back

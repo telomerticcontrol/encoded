@@ -149,8 +149,8 @@ def encoded_regionable_datasets(request, restrict_to_assays=[]):
 
 class RegionIndexerState(IndexerState):
     # Accepts handoff of uuids from primary indexer. Keeps track of uuids and region_indexer state by cycle.
-    def __init__(self, es, key):
-        super(RegionIndexerState, self).__init__(es,key, title='region')
+    def __init__(self, elastic_search, key):
+        super(RegionIndexerState, self).__init__(elastic_search,key, title='region')
         self.files_added_set    = self.title + '_files_added'
         self.files_dropped_set  = self.title + '_files_dropped'
         self.success_set        = self.files_added_set
@@ -371,7 +371,7 @@ def index_regions(request):
 class RegionIndexer(Indexer):
     def __init__(self, registry):
         super(RegionIndexer, self).__init__(registry)
-        self.encoded_es    = registry[ELASTIC_SEARCH]    # yes this is self.es but we want clarity
+        self.encoded_es    = registry[ELASTIC_SEARCH]    # yes this is self.elastic_search but we want clarity
         self.encoded_INDEX = registry.settings['snovault.elasticsearch.index']  # yes this is self.index, but clarity
         self.regions_es    = registry[SNP_SEARCH_ES]
         self.residents_index = RESIDENT_REGIONSET_KEY
