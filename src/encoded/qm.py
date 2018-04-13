@@ -90,11 +90,15 @@ def logger_warn_skip(expected_type, experiment_id, len_data):
     )
 
 
-def get_experiments_and_files(context, request, formatting):
+def get_experiments_and_files(context, request, formatting, assembly):
     '''
     Returns all relevant experiment and files.
     '''
-    ending = '&format=' + formatting + '&limit=all' if formatting else '&limit=all'
+    ending = (
+        '&assembly={}&format={}&limit=all'.format(assembly, formatting)
+        if formatting
+        else '&assembly={}&limit=all'.format(assembly)
+    )
     experiment_query = HISTONE_CHIP_EXPERIMENTS_QUERY + EXPERIMENT_FIELDS_QUERY + ending
     request.query_string = experiment_query
     logging.warn(request.params)
@@ -186,6 +190,7 @@ def build_rows(experiment_data, file_data):
 def quality_metric(context, request):
     logging.warn('In qm')
     formatting = request.params.get('format')
+    assembly = request.params.get('assembly')
     logging.warn(formatting)
     experiment_data, file_data = get_experiments_and_files(context, request, formatting)
     rows = build_rows(experiment_data, file_data)
