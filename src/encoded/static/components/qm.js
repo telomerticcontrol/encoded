@@ -13,8 +13,6 @@ class HistoneQCReport extends React.Component {
     }
 
     render() {
-        console.log('props');
-        console.log(this.props.context.rows);
         return (<div>
                 <table>
                 <tbody>

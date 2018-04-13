@@ -191,7 +191,6 @@ def quality_metric(context, request):
     logging.warn('In qm')
     formatting = request.params.get('format')
     assembly = request.params.get('assembly', 'GRCh38')
-    logging.warn(formatting)
     experiment_data, file_data = get_experiments_and_files(context, request, formatting, assembly)
     rows = build_rows(experiment_data, file_data)
     return {
