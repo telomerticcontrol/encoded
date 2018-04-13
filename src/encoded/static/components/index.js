@@ -37,6 +37,7 @@ require('./schema');
 require('./summary');
 require('./region_search');
 require('./auditmatrix');
+require('./qm');
 
 
 module.exports = require('./app');
