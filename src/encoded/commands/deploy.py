@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import getpass
 import re
@@ -9,7 +10,6 @@ from base64 import b64encode
 from os.path import expanduser
 
 import boto3
-
 
 
 BDM = [
@@ -252,135 +252,166 @@ def get_user_data(commit, config_file, data_insert, profile_name):
     return user_data
 
 
-def run(wale_s3_prefix, image_id, instance_type, elasticsearch, spot_instance,
-        spot_price, cluster_size, cluster_name, check_price,
-        branch=None, name=None, role='demo', profile_name=None
-       ):
-    # pylint: disable=too-many-arguments, too-many-locals, too-many-branches, too-many-statements
-    if branch is None:
-        branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').strip()
-
-    commit = subprocess.check_output(['git', 'rev-parse', '--short', branch]).decode('utf-8').strip()
-    if not subprocess.check_output(['git', 'branch', '-r', '--contains', commit]).strip():
-        print("Commit %r not in origin. Did you git push?" % commit)
+def _get_instances_tag_data(main_args):
+    instances_tag_data = {
+        'branch': main_args.branch,
+        'commit': None,
+        'name': main_args.name,
+        'username': None,
+    }
+    if instances_tag_data['branch'] is None:
+        instances_tag_data['branch'] = subprocess.check_output(
+            ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+        ).decode('utf-8').strip()
+    instances_tag_data['commit'] = subprocess.check_output(
+        ['git', 'rev-parse', '--short', instances_tag_data['branch']]
+    ).decode('utf-8').strip()
+    if not subprocess.check_output(
+            ['git', 'branch', '-r', '--contains', instances_tag_data['commit']]
+        ).strip():
+        print("Commit %r not in origin. Did you git push?" % instances_tag_data['commit'])
         sys.exit(1)
+    instances_tag_data['username'] = getpass.getuser()
+    if instances_tag_data['name'] is None:
+        instances_tag_data['name'] = nameify(
+            '%s-%s-%s' % (
+                instances_tag_data['branch'],
+                instances_tag_data['commit'],
+                instances_tag_data['username'],
+            )
+        )
+        if main_args.elasticsearch == 'yes':
+            instances_tag_data['name'] = 'elasticsearch-' + instances_tag_data['name']
+    return instances_tag_data
 
-    username = getpass.getuser()
 
-    if name is None:
-        name = nameify('%s-%s-%s' % (branch, commit, username))
-        if elasticsearch == 'yes':
-            name = 'elasticsearch-' + name
-
-    session = boto3.Session(region_name='us-west-2', profile_name=profile_name)
+def _get_ec2_client(main_args, instances_tag_data):
+    session = boto3.Session(region_name='us-west-2', profile_name=main_args.profile_name)
     ec2 = session.resource('ec2')
-
-    domain = 'production' if profile_name == 'production' else 'instance'
-
     if any(ec2.instances.filter(
             Filters=[
-                {'Name': 'tag:Name', 'Values': [name]},
+                {'Name': 'tag:Name', 'Values': [instances_tag_data['name']]},
                 {'Name': 'instance-state-name',
                  'Values': ['pending', 'running', 'stopping', 'stopped']},
             ])):
-        print('An instance already exists with name: %s' % name)
-        sys.exit(1)
+        print('An instance already exists with name: %s' % instances_tag_data['name'])
+        return None
+    return ec2
 
-    if not elasticsearch == 'yes':
-        if cluster_name:
+
+def _get_run_args(main_args, instances_tag_data):
+    if not main_args.elasticsearch == 'yes':
+        if main_args.cluster_name:
             config_file = ':cloud-config-cluster.yml'
         else:
             config_file = ':cloud-config.yml'
         data_insert = {
-            'WALE_S3_PREFIX': wale_s3_prefix,
-            'COMMIT': commit,
-            'ROLE': role,
+            'WALE_S3_PREFIX': main_args.wale_s3_prefix,
+            'COMMIT': instances_tag_data['commit'],
+            'ROLE': main_args.role,
         }
-        if cluster_name:
-            data_insert['CLUSTER_NAME'] = cluster_name
-        user_data = get_user_data(commit, config_file, data_insert, profile_name)
+        if main_args.cluster_name:
+            data_insert['CLUSTER_NAME'] = main_args.cluster_name
+        user_data = get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
         security_groups = ['ssh-http-https']
         iam_role = 'encoded-instance'
         count = 1
     else:
-        if not cluster_name:
+        if not main_args.cluster_name:
             print("Cluster must have a name")
             sys.exit(1)
         config_file = ':cloud-config-elasticsearch.yml'
         data_insert = {
-            'CLUSTER_NAME': cluster_name,
+            'CLUSTER_NAME': main_args.cluster_name,
         }
-        user_data = get_user_data(commit, config_file, data_insert, profile_name)
+        user_data = get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
         security_groups = ['elasticsearch-https']
         iam_role = 'elasticsearch-instance'
-        count = int(cluster_size)
+        count = int(main_args.cluster_size)
+    run_args = {
+        'count': count,
+        'iam_role': iam_role,
+        'user_data': user_data,
+        'security_groups': security_groups,
+    }
+    return run_args
 
-    boto_client = boto3.client('ec2')
-    if check_price:
-        spot_client = SpotClient(boto_client, image_id, instance_type, security_groups)
-        spot_client.spot_instance_price_check()
-        exit()
 
-    if spot_instance:
-        print("spot_instance check worked")
-        # issue with base64 encoding so no decoding in utc-8 and recoding in base64 then decoding in base 64.
-        config_file = ':cloud-config.yml'
-        user_config = subprocess.check_output(['git', 'show', commit + ':cloud-config.yml'])
-        user_data_b64 = b64encode(user_config)
-        user_data = user_data_b64.decode()
-        spot_client = SpotClient(boto_client, image_id, instance_type, security_groups)
-        print("security_groups: %s" % security_groups)
-        instances = spot_client.request_spot_instance(iam_role, spot_price, user_data)
-    else:
-        instances = boto_client.create_instances(
-            ImageId=image_id,
-            MinCount=count,
-            MaxCount=count,
-            InstanceType=instance_type,
-            SecurityGroups=security_groups,
-            UserData=user_data,
-            BlockDeviceMappings=BDM,
-            InstanceInitiatedShutdownBehavior='terminate',
-            IamInstanceProfile={
-                "Name": iam_role,
-            }
-        )
-
+def _wait_and_tag_instances(main_args, run_args, instances_tag_data, instances):
+    tmp_name = instances_tag_data['name']
+    domain = 'production' if main_args.profile_name == 'production' else 'instance'
     for i, instance in enumerate(instances):
-        if elasticsearch == 'yes' and count > 1:
+        if main_args.elasticsearch == 'yes' and run_args['count'] > 1:
             print('Creating Elasticsearch cluster')
-            tmp_name = "{}{}".format(name, i)
+            instances_tag_data['name'] = "{}{}".format(tmp_name, i)
         else:
-            tmp_name = name
-
-        if not spot_instance:
+            instances_tag_data['name'] = tmp_name
+        if not main_args.spot_instance:
             print('%s.%s.encodedcc.org' % (instance.id, domain))  # Instance:i-34edd56f
             instance.wait_until_exists()
-            tag_data = {
-                'branch': branch,
-                'commit': commit,
-                'name': tmp_name,
-                'username': username,
-            }
-            tag_ec2_instance(instance, tag_data, elasticsearch, cluster_name)
-            print('ssh %s.%s.encodedcc.org' % (tmp_name, domain))
+            tag_ec2_instance(instance, instances_tag_data, main_args.elasticsearch, main_args.cluster_name)
+            print('ssh %s.%s.encodedcc.org' % (instances_tag_data['name'], domain))
             if domain == 'instance':
-                print('https://%s.demo.encodedcc.org' % tmp_name)
-
-    if spot_instance:
-        tag_data = {
-            'branch': branch,
-            'commit': commit,
-            'name': tmp_name,
-            'username': username,
-        }
-        spot_client.tag_spot_instance(tag_data, elasticsearch, cluster_name)
-        print("Spot instance request had been completed, please check to be sure it was fufilled")
+                print('https://%s.demo.encodedcc.org' % instances_tag_data['name'])
 
 
 def main():
-    import argparse
+    # Gather Info
+    main_args = parse_args()
+    instances_tag_data = _get_instances_tag_data(main_args)
+    if instances_tag_data is None:
+        sys.exit(10)
+    ec2_client = _get_ec2_client(main_args, instances_tag_data)
+    if ec2_client is None:
+        sys.exit(20)
+    run_args = _get_run_args(main_args, instances_tag_data)
+    # Run Cases
+    if main_args.check_price:
+        print("check_price")
+        boto_client = boto3.client('ec2')
+        spot_client = SpotClient(
+            boto_client,
+            main_args.image_id,
+            main_args.instance_type,
+            run_args['security_groups']
+        )
+        spot_client.spot_instance_price_check()
+    elif main_args.spot_instance:
+        print("spot_instance")
+        boto_client = boto3.client('ec2')
+        # issue with base64 encoding so no decoding in utc-8 and recoding in base64 then decoding in base 64.
+        user_config = subprocess.check_output(['git', 'show', instances_tag_data['commit'] + ':cloud-config.yml'])
+        user_data_b64 = b64encode(user_config)
+        run_args['user_data'] = user_data_b64.decode()
+        spot_client = SpotClient(
+            boto_client,
+            main_args.image_id,
+            main_args.instance_type,
+            run_args['security_groups']
+        )
+        print("security_groups: %s" % run_args['security_groups'])
+        instances = spot_client.request_spot_instance(run_args['iam_role'], main_args.spot_price, run_args['user_data'])
+        _wait_and_tag_instances(main_args, run_args, instances_tag_data, instances)
+        spot_client.tag_spot_instance(instances_tag_data, main_args.elasticsearch, main_args.cluster_name)
+        print("Spot instance request had been completed, please check to be sure it was fufilled")
+    else:
+        instances = ec2_client.create_instances(
+            ImageId=main_args.image_id,
+            MinCount=run_args['count'],
+            MaxCount=run_args['count'],
+            InstanceType=main_args.instance_type,
+            SecurityGroups=run_args['security_groups'],
+            UserData=run_args['user_data'],
+            BlockDeviceMappings=BDM,
+            InstanceInitiatedShutdownBehavior='terminate',
+            IamInstanceProfile={
+                "Name": run_args['iam_role'],
+            }
+        )
+        _wait_and_tag_instances(main_args, run_args, instances_tag_data, instances)
 
+
+def parse_args():
     def hostname(value):
         if value != nameify(value):
             raise argparse.ArgumentTypeError(
@@ -392,31 +423,31 @@ def main():
     )
     parser.add_argument('-b', '--branch', default=None, help="Git branch or tag")
     parser.add_argument('-n', '--name', type=hostname, help="Instance name")
-    parser.add_argument('--wale-s3-prefix', default='s3://encoded-backups-prod/production')
+    parser.add_argument('--check-price', action='store_true', help="Check price on spot instances")
+    parser.add_argument('--cluster-name', default=None, help="Name of the cluster")
+    parser.add_argument('--cluster-size', default=2, help="Elasticsearch cluster size")
+    parser.add_argument('--elasticsearch', default=None, help="Launch an Elasticsearch instance")
+    parser.add_argument('--image-id', default='ami-2133bc59',
+                        help=(
+                            "https://us-west-2.console.aws.amazon.com/ec2/home"
+                            "?region=us-west-2#LaunchInstanceWizard:ami=ami-2133bc59"
+                        ))
+    parser.add_argument('--instance-type', default='c5.9xlarge',
+                        help="c5.9xlarge for indexing. Switch to a smaller instance (m5.xlarge or c5.xlarge).")
+    parser.add_argument('--profile-name', default=None, help="AWS creds profile")
     parser.add_argument('--spot-instance', action='store_true', help="Launch as spot instance")
     parser.add_argument('--spot-price', default='0.70', help="Set price or keep default price of 0.70")
-    parser.add_argument('--check-price', action='store_true', help="Check price on spot instances")
+    parser.add_argument('--teardown-cluster', default=None,
+                        help="Takes down all the cluster launched from the branch")
+    parser.add_argument('--wale-s3-prefix', default='s3://encoded-backups-prod/production')
+    # Set Role
     parser.add_argument(
         '--candidate', action='store_const', default='demo', const='candidate', dest='role',
         help="Deploy candidate instance")
     parser.add_argument(
         '--test', action='store_const', default='demo', const='test', dest='role',
         help="Deploy to production AWS")
-    parser.add_argument(
-        '--image-id', default='ami-2133bc59',
-        help="https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#LaunchInstanceWizard:ami=ami-2133bc59")
-    parser.add_argument(
-        '--instance-type', default='c5.9xlarge',
-        help="(defualts to c5.9xlarge for indexing) Switch to a smaller instance afterwards"
-        "(m5.xlarge or c5.xlarge).")
-    parser.add_argument('--profile-name', default=None, help="AWS creds profile")
-    parser.add_argument('--elasticsearch', default=None, help="Launch an Elasticsearch instance")
-    parser.add_argument('--cluster-size', default=2, help="Elasticsearch cluster size")
-    parser.add_argument('--teardown-cluster', default=None, help="Takes down all the cluster launched from the branch")
-    parser.add_argument('--cluster-name', default=None, help="Name of the cluster")
-    args = parser.parse_args()
-
-    return run(**vars(args))
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
