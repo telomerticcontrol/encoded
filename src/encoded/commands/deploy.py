@@ -332,7 +332,6 @@ def _get_run_args(main_args, instances_tag_data):
         security_groups = ['elasticsearch-https']
         iam_role = 'elasticsearch-instance'
         count = int(main_args.cluster_size)
-    print(data_insert)
     run_args = {
         'count': count,
         'iam_role': iam_role,
