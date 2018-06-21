@@ -22,7 +22,6 @@ packages:
 - awscli
 - bsdtar
 - build-essential
-- elasticsearch
 - git
 - graphviz
 - libapache2-mod-wsgi-py3
@@ -38,11 +37,7 @@ packages:
 - libxml2-dev
 - libxslt1-dev
 - lzop
-- nodejs
 - ntp
-- oracle-java8-installer
-- oracle-java8-set-default
-- postgresql-9.3
 - pv
 - python2.7-dev
 - python3.4-dev
