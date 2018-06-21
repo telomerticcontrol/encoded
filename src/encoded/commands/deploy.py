@@ -513,7 +513,7 @@ def parse_args():
                             "https://us-west-2.console.aws.amazon.com/ec2/home"
                             "?region=us-west-2#LaunchInstanceWizard:ami=ami-2133bc59"
                         ))
-    parser.add_argument('--instance-type', default='c5.9xlarge',
+    parser.add_argument('--instance-type', default='m5.xlarge',
                         help="c5.9xlarge for indexing. Switch to a smaller instance (m5.xlarge or c5.xlarge).")
     parser.add_argument('--profile-name', default=None, help="AWS creds profile")
     parser.add_argument('--no-es', action='store_true', help="Use non ES cloud condfig")
