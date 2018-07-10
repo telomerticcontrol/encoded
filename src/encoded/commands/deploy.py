@@ -304,9 +304,34 @@ def get_ec2_client(main_args, instances_tag_data):
     return ec2
 
 
-def _get_run_args(main_args, instances_tag_data):
+def get_run_args(main_args, instances_tag_data):
+    # Unfortunate Dependencies
+    elasticsearch = 'no'
+    if hasattr(main_args, 'elasticsearch'):
+        elasticsearch = main_args.elasticsearch
+    no_es = None
+    if hasattr(main_args, 'no_es'):
+        no_es = main_args.no_es
+    es_ip = None
+    if hasattr(main_args, 'es_ip'):
+        es_ip = main_args.es_ip
+    es_port = None
+    if hasattr(main_args, 'es_port'):
+        set_region_index_to = main_args.es_port
+    set_region_index_to = None
+    if hasattr(main_args, 'set_region_index_to'):
+        es_port = main_args.set_region_index_to
+    cluster_name = None
+    if hasattr(main_args, 'cluster_name'):
+        cluster_name = main_args.cluster_name
+    cluster_size = None
+    if hasattr(main_args, 'cluster_size'):
+        cluster_name = main_args.cluster_size
+    single_data_master = None
+    if hasattr(main_args, 'single_data_master'):
+        single_data_master = main_args.single_data_master
     master_user_data = None
-    if not main_args.elasticsearch == 'yes':
+    if not elasticsearch == 'yes':
         security_groups = ['ssh-http-https']
         iam_role = 'encoded-instance'
         count = 1
@@ -315,30 +340,41 @@ def _get_run_args(main_args, instances_tag_data):
             'COMMIT': instances_tag_data['commit'],
             'ROLE': main_args.role,
             'REGION_INDEX': 'False',
-            'ES_IP': main_args.es_ip,
-            'ES_PORT': main_args.es_port,
+            'ES_IP': es_ip,
+            'ES_PORT': es_port,
         }
-        if main_args.no_es:
+        if no_es:
             config_file = ':cloud-config-no-es.yml'
-        elif main_args.cluster_name:
+        elif cluster_name:
             config_file = ':cloud-config-cluster.yml'
-            data_insert['CLUSTER_NAME'] = main_args.cluster_name
+            data_insert['CLUSTER_NAME'] = cluster_name
             data_insert['REGION_INDEX'] = 'True'
         else:
             config_file = ':cloud-config.yml'
-        if main_args.set_region_index_to:
-            data_insert['REGION_INDEX'] = main_args.set_region_index_to
+            del data_insert['REGION_INDEX']
+            del data_insert['ES_IP']
+            del data_insert['ES_PORT']
+            if is_database:
+                config_file = ':cloud-config-database.yml'
+                db_user_data = _get_user_data(
+                    instances_tag_data['commit'],
+                    config_file,
+                    data_insert,
+                    main_args.profile_name
+                )
+        if set_region_index_to:
+            data_insert['REGION_INDEX'] = set_region_index_to
         user_data = get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
     else:
-        if not main_args.cluster_name:
+        if not cluster_name:
             print("Cluster must have a name")
             sys.exit(1)
-        count = int(main_args.cluster_size)
+        count = int(cluster_size)
         security_groups = ['elasticsearch-https']
         iam_role = 'elasticsearch-instance'
         config_file = ':cloud-config-elasticsearch.yml'
         data_insert = {
-            'CLUSTER_NAME': main_args.cluster_name,
+            'CLUSTER_NAME': cluster_name,
             'ES_DATA': 'true',
             'ES_MASTER': 'true',
             'MIN_MASTER_NODES': int(count/2 + 1),
@@ -347,9 +383,9 @@ def _get_run_args(main_args, instances_tag_data):
             data_insert['ES_MASTER'] = 'false'
             data_insert['MIN_MASTER_NODES'] = 1
         user_data = get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
-        if main_args.single_data_master:
+        if single_data_master:
             master_data_insert = {
-                'CLUSTER_NAME': main_args.cluster_name,
+                'CLUSTER_NAME': cluster_name,
                 'ES_DATA': 'false',
                 'ES_MASTER': 'true',
                 'MIN_MASTER_NODES': 1,
