@@ -1,0 +1,165 @@
+#cloud-config
+
+# Instance
+ssh_authorized_keys:
+  - %(LOCAL_SSH_KEY)s
+
+bootcmd:
+- set -ex
+- cloud-init-per once fallocate-swapfile fallocate -l 4G /swapfile
+- cloud-init-per once chmod-swapfile chmod 600 /swapfile
+- cloud-init-per once mkswap-swapfile mkswap /swapfile
+
+
+package_upgrade: true
+
+packages:
+- apache2-mpm-worker
+- awscli
+- bsdtar
+- build-essential
+- git
+- graphviz
+- libapache2-mod-wsgi-py3
+- libevent-dev
+- libfreetype6-dev
+- libjpeg-dev
+- liblcms2-dev
+- libmagic-dev
+- libpq-dev
+- libssl-dev
+- libtiff5-dev
+- libwebp-dev
+- libxml2-dev
+- libxslt1-dev
+- lzop
+- ntp
+- postgresql-9.3
+- pv
+- python2.7-dev
+- python3.4-dev
+- python3-pip
+- python-software-properties
+- python-virtualenv
+- ruby-dev
+- unattended-upgrades
+- update-notifier-common
+- zlib1g-dev
+- libffi-dev
+- bsd-mailx
+
+power_state:
+  mode: reboot
+
+output:
+  all: '| tee -a /var/log/cloud-init-output.log'
+
+runcmd:
+- sudo -u ubuntu mv /home/ubuntu/.ssh/authorized_keys /home/ubuntu/.ssh/authorized_keys2
+- sudo -u ubuntu aws s3 cp --region=us-west-2 %(S3_AUTH_KEYS)s /home/ubuntu/.ssh/authorized_keys
+- chown postgres:postgres /etc/postgresql/9.3/main/*.conf
+- echo "include 'custom.conf'" >> /etc/postgresql/9.3/main/postgresql.conf
+- if test "%(ROLE)s" = "demo"
+- then
+-   echo "standby_mode = off" >> /etc/postgresql/9.3/main/recovery.conf
+-   echo "include 'demo.conf'" >> /etc/postgresql/9.3/main/postgresql.conf
+- fi
+- sudo -u postgres createuser encoded
+- sudo -u postgres createdb --owner=encoded encoded
+- mkdir /srv/encoded
+- chown encoded:encoded /srv/encoded
+- cd /srv/encoded
+- mkdir /opt/cloudwatchmon
+- chown build:build /opt/cloudwatchmon
+- sudo -u build virtualenv --python=python2.7 /opt/cloudwatchmon
+- sudo -u build /opt/cloudwatchmon/bin/pip install -r cloudwatchmon-requirements.txt
+- mkdir /opt/wal-e
+- chown postgres:postgres /opt/wal-e
+- sudo -u postgres virtualenv --python=python2.7 /opt/wal-e
+- sudo -u postgres /opt/wal-e/bin/pip install -r wal-e-requirements.txt
+- /etc/init.d/postgresql stop
+- sudo -u postgres /opt/wal-e/bin/wal-e --aws-instance-profile --s3-prefix="$(cat /etc/postgresql/9.3/main/wale_s3_prefix)" backup-fetch /var/lib/postgresql/9.3/main LATEST
+- sudo -u postgres ln -s /etc/postgresql/9.3/main/recovery.conf /var/lib/postgresql/9.3/main/
+- /etc/init.d/postgresql start
+- sudo -u encoded bin/aws s3 cp --recursive s3://encoded-conf-prod/.aws .aws
+- until sudo -u postgres psql postgres -c ""; do sleep 10; done
+- ln -s /srv/encoded/etc/logging-apache.conf /etc/apache2/conf-available/logging.conf
+- a2enmod headers
+- a2enmod proxy_http
+- a2enmod rewrite
+- a2enmod ssl
+- a2ensite encoded.conf
+- a2dissite 000-default
+- a2enconf logging
+- a2disconf charset
+- a2disconf security
+- a2disconf localized-error-pages
+- a2disconf other-vhosts-access-log
+- a2disconf serve-cgi-bin
+- sudo sed -i -e 's/inet_interfaces = all/inet_interfaces = loopback-only/g' /etc/postfix/main.cf
+- PUBLIC_DNS_NAME="$(curl http://169.254.169.254/latest/meta-data/public-hostname)"
+- sudo sed -i "/myhostname/c\myhostname = $PUBLIC_DNS_NAME" /etc/postfix/main.cf
+- sudo echo "127.0.0.0 $PUBLIC_DNS_NAME" | sudo tee --append /etc/hosts
+- sudo mv /etc/mailname /etc/mailname.OLD
+- sudo echo "$PUBLIC_DNS_NAME" | sudo tee --append /etc/mailname
+- sudo service postfix restart
+
+users:
+- default
+- name: build
+  gecos: Build user
+  inactive: true
+  system: true
+- name: encoded
+  gecos: ENCODE Metadata Database daemon user
+  inactive: true
+  system: true
+  # Specified homedir must exist
+  # https://github.com/rubygems/rubygems/issues/689
+  homedir: /srv/encoded
+
+write_files:
+- path: /etc/apt/apt.conf.d/20auto-upgrades
+  content: |
+    APT::Periodic::Update-Package-Lists "1";
+    APT::Periodic::Unattended-Upgrade "1";
+
+- path: /etc/apt/apt.conf.d/50unattended-upgrades
+  content: |
+    Unattended-Upgrade::Allowed-Origins {
+        "${distro_id} ${distro_codename}-security";
+    };
+    Unattended-Upgrade::Mail "encode-devops@lists.stanford.edu";
+    Unattended-Upgrade::Automatic-Reboot "false";
+
+- path: /etc/cron.d/cloudwatchmon
+  content: |
+    */5 * * * * nobody /opt/cloudwatchmon/bin/mon-put-instance-stats.py --mem-util --swap-util --disk-space-util --disk-path=/ --from-cron
+
+- path: /etc/postgresql/9.3/main/custom.conf
+  content: |
+    hot_standby = on
+    max_standby_archive_delay = -1
+    wal_level = hot_standby
+    archive_mode = on
+    archive_timeout = 60
+    # http://www.postgresql.org/message-id/CAOycyLTm6X3mVLz+sLCex+W==WSMgu9giteV7efPoPXYDhPtzQ@mail.gmail.com
+    checkpoint_timeout = 1h
+
+- path: /etc/postgresql/9.3/main/demo.conf
+  content: |
+    archive_mode = off
+
+- path: /etc/postgresql/9.3/main/master.conf
+  content: |
+    archive_command = '/opt/wal-e/bin/envfile --config ~postgres/.aws/credentials --section default --upper -- /opt/wal-e/bin/wal-e --s3-prefix="$(cat /etc/postgresql/9.3/main/wale_s3_prefix)" wal-push "%%p"'
+
+- path: /etc/postgresql/9.3/main/recovery.conf
+  content: |
+    # recovery.conf must be linked into data dir to do anything
+    recovery_target_timeline = 'latest'
+    restore_command = '/opt/wal-e/bin/wal-e --aws-instance-profile --s3-prefix="$(cat /etc/postgresql/9.3/main/wale_s3_prefix)" wal-fetch "%%f" "%%p"'
+    standby_mode = on
+
+- path: /etc/postgresql/9.3/main/wale_s3_prefix
+  content: "%(WALE_S3_PREFIX)s"
