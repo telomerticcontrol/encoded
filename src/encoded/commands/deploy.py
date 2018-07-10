@@ -229,7 +229,7 @@ def get_bdm(main_args):
     ]
 
 
-def get_user_data(commit, config_file, data_insert, profile_name):
+def _get_user_data(commit, config_file, data_insert, profile_name):
     cmd_list = ['git', 'show', commit + config_file]
     config_template = subprocess.check_output(cmd_list).decode('utf-8')
     ssh_pub_key = read_ssh_key()
@@ -364,7 +364,7 @@ def get_run_args(main_args, instances_tag_data):
                 )
         if set_region_index_to:
             data_insert['REGION_INDEX'] = set_region_index_to
-        user_data = get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
+        user_data = _get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
     else:
         if not cluster_name:
             print("Cluster must have a name")
@@ -382,7 +382,7 @@ def get_run_args(main_args, instances_tag_data):
         if main_args.single_data_master:
             data_insert['ES_MASTER'] = 'false'
             data_insert['MIN_MASTER_NODES'] = 1
-        user_data = get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
+        user_data = _get_user_data(instances_tag_data['commit'], config_file, data_insert, main_args.profile_name)
         if single_data_master:
             master_data_insert = {
                 'CLUSTER_NAME': cluster_name,
@@ -390,7 +390,7 @@ def get_run_args(main_args, instances_tag_data):
                 'ES_MASTER': 'true',
                 'MIN_MASTER_NODES': 1,
             }
-            master_user_data = get_user_data(
+            master_user_data = _get_user_data(
                 instances_tag_data['commit'],
                 config_file,
                 master_data_insert,
