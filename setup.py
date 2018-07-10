@@ -86,6 +86,7 @@ setup(
         add-date-created = encoded.commands.add_date_created:main
         check-rendering = encoded.commands.check_rendering:main
         deploy = encoded.commands.deploy:main
+        deploy-database = encoded.commands.deploy_database:main
         extract_test_data = encoded.commands.extract_test_data:main
         es-index-data = encoded.commands.es_index_data:main
         generate-ontology = encoded.commands.generate_ontology:main
