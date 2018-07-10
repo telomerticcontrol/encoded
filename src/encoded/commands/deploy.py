@@ -410,11 +410,25 @@ def get_run_args(main_args, instances_tag_data, is_database=False):
     return run_args
 
 
-def _wait_and_tag_instances(main_args, run_args, instances_tag_data, instances, cluster_master=False):
+def _wait_and_tag_instances(
+    main_args,
+    run_args,
+    instances_tag_data,
+    instances,
+    cluster_master=False,
+    is_database=False,
+):
+    # Unfortunate Dependencies
+    elasticsearch = 'no'
+    if hasattr(main_args, 'elasticsearch'):
+        elasticsearch = main_args.elasticsearch
+    spot_instance = 'no'
+    if hasattr(main_args, 'spot_instance'):
+        spot_instance = main_args.spot_instance
     tmp_name = instances_tag_data['name']
     domain = 'production' if main_args.profile_name == 'production' else 'instance'
     for i, instance in enumerate(instances):
-        if main_args.elasticsearch == 'yes' and run_args['count'] > 1:
+        if elasticsearch == 'yes' and run_args['count'] > 1:
             if cluster_master and run_args['master_user_data']:
                 print('Creating Elasticsearch Master Node for cluster')
                 # Hack: current tmp_name was the last data cluster, so remove '4'
@@ -422,12 +436,16 @@ def _wait_and_tag_instances(main_args, run_args, instances_tag_data, instances, 
             else:
                 print('Creating Elasticsearch cluster')
                 instances_tag_data['name'] = "{}{}".format(tmp_name, i)
+        elif is_database:
+            print('Creating Database Instance')
+            instances_tag_data['name'] = "{}{}".format(tmp_name, i)
         else:
             instances_tag_data['name'] = tmp_name
-        if not main_args.spot_instance:
+        print(tmp_name, instances_tag_data['name'])
+        if not spot_instance:
             print('%s.%s.encodedcc.org' % (instance.id, domain))  # Instance:i-34edd56f
             instance.wait_until_exists()
-            tag_ec2_instance(instance, instances_tag_data, main_args.elasticsearch, main_args.cluster_name)
+            tag_ec2_instance(instance, instances_tag_data, elasticsearch, main_args.cluster_name)
             print('ssh %s.%s.encodedcc.org' % (instances_tag_data['name'], domain))
             print('https://%s.demo.encodedcc.org' % instances_tag_data['name'])
 
