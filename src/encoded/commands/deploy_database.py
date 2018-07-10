@@ -84,16 +84,34 @@ def _get_run_args(main_args, instances_tag_data):
 def main():
     # Gather Info
     main_args = parse_args()
+    for item in [
+            'check_price',
+            'cluster_name',
+            'cluster_size',
+
+            'elasticsearch',
+            'es_ip',
+            'es_port',
+            'no_es',
+            'set_region_index_to',
+            'single_data_master',
+
+            'spot_instance',
+            'spot_price',
+            'teardown_cluster'
+            ]:
+        delattr(main_args, item)
+    print(main_args)
     instances_tag_data = _get_instances_tag_data(main_args)
-    if instances_tag_data is None:
-        sys.exit(10)
-    ec2_client = _get_ec2_client(main_args, instances_tag_data)
-    if ec2_client is None:
-        sys.exit(20)
-    run_args = _get_run_args(main_args, instances_tag_data)
-    # Run Cases
-    bdm = _get_bdm(main_args)
-    if 'db_user_data' in run_args:
+    # if instances_tag_data is None:
+    #     sys.exit(10)
+    # ec2_client = _get_ec2_client(main_args, instances_tag_data)
+    # if ec2_client is None:
+    #     sys.exit(20)
+    # run_args = _get_run_args(main_args, instances_tag_data)
+    # # Run Cases
+    # bdm = _get_bdm(main_args)
+    # if 'db_user_data' in run_args:
     # instances = ec2_client.create_instances(
     #     ImageId='ami-2133bc59',
     #     MinCount=1,
@@ -108,7 +126,6 @@ def main():
     #     }
     # )
     # _wait_and_tag_instances(main_args, run_args, instances_tag_data, instances, cluster_master=True)
-
 
 if __name__ == '__main__':
     main()
