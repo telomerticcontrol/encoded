@@ -304,7 +304,7 @@ def get_ec2_client(main_args, instances_tag_data):
     return ec2
 
 
-def get_run_args(main_args, instances_tag_data):
+def get_run_args(main_args, instances_tag_data, is_database=False):
     # Unfortunate Dependencies
     elasticsearch = 'no'
     if hasattr(main_args, 'elasticsearch'):
@@ -331,6 +331,7 @@ def get_run_args(main_args, instances_tag_data):
     if hasattr(main_args, 'single_data_master'):
         single_data_master = main_args.single_data_master
     master_user_data = None
+    db_user_data = None
     if not elasticsearch == 'yes':
         security_groups = ['ssh-http-https']
         iam_role = 'encoded-instance'
@@ -404,6 +405,8 @@ def get_run_args(main_args, instances_tag_data):
     }
     if master_user_data:
         run_args['master_user_data'] = master_user_data
+    if db_user_data:
+        run_args['db_user_data'] = db_user_data
     return run_args
 
 
