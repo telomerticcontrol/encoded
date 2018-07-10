@@ -253,7 +253,11 @@ def get_user_data(commit, config_file, data_insert, profile_name):
     return user_data
 
 
-def _get_instances_tag_data(main_args):
+def get_instances_tag_data(main_args):
+    # Unfortunate Dependencies
+    elasticsearch = 'no'
+    if hasattr(main_args, 'elasticsearch'):
+        elasticsearch = main_args.elasticsearch
     instances_tag_data = {
         'branch': main_args.branch,
         'commit': None,
@@ -281,7 +285,7 @@ def _get_instances_tag_data(main_args):
                 instances_tag_data['username'],
             )
         )
-        if main_args.elasticsearch == 'yes':
+        if elasticsearch == 'yes':
             instances_tag_data['name'] = 'elasticsearch-' + instances_tag_data['name']
     return instances_tag_data
 
@@ -392,7 +396,7 @@ def _wait_and_tag_instances(main_args, run_args, instances_tag_data, instances, 
 def main():
     # Gather Info
     main_args = parse_args()
-    instances_tag_data = _get_instances_tag_data(main_args)
+    instances_tag_data = get_instances_tag_data(main_args)
     if instances_tag_data is None:
         sys.exit(10)
     ec2_client = _get_ec2_client(main_args, instances_tag_data)
