@@ -290,7 +290,7 @@ def get_instances_tag_data(main_args):
     return instances_tag_data
 
 
-def _get_ec2_client(main_args, instances_tag_data):
+def get_ec2_client(main_args, instances_tag_data):
     session = boto3.Session(region_name='us-west-2', profile_name=main_args.profile_name)
     ec2 = session.resource('ec2')
     if any(ec2.instances.filter(
