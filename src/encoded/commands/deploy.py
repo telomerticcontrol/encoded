@@ -208,7 +208,7 @@ def read_ssh_key():
     return None
 
 
-def _get_bdm(main_args):
+def get_bdm(main_args):
     return [
         {
             'DeviceName': '/dev/sda1',
@@ -464,7 +464,7 @@ def main():
             run_args['security_groups']
         )
         print("security_groups: %s" % run_args['security_groups'])
-        bdm = _get_bdm(main_args)
+        bdm = get_bdm(main_args)
         instances = spot_client.request_spot_instance(
             run_args['iam_role'],
             main_args.spot_price,
@@ -475,7 +475,7 @@ def main():
         spot_client.tag_spot_instance(instances_tag_data, main_args.elasticsearch, main_args.cluster_name)
         print("Spot instance request had been completed, please check to be sure it was fufilled")
     else:
-        bdm = _get_bdm(main_args)
+        bdm = get_bdm(main_args)
         instances = ec2_client.create_instances(
             ImageId=main_args.image_id,
             MinCount=run_args['count'],
