@@ -316,7 +316,7 @@ def _get_run_args(main_args, instances_tag_data):
             'ES_PORT': main_args.es_port,
         }
         if main_args.no_es:
-            config_file = ':cloud-config-no-es.yml'
+            config_file = ':cloud-config-no-es-opendb.yml'
         elif main_args.cluster_name:
             config_file = ':cloud-config-cluster.yml'
             data_insert['CLUSTER_NAME'] = main_args.cluster_name
