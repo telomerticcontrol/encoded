@@ -851,8 +851,8 @@ def search(context, request, search_type=None, return_generator=False):
     print(doc_types, new_doc_types)
     print(result['clear_filters'] == result_clear_filters)
     print(result['clear_filters'], result_clear_filters)
-    print(result['result_filters'] == result_filters)
-    print(result['result_filters'], result_clear_filters)
+    print(result['filters'] == result_filters)
+    print(result['filters'], result_clear_filters)
 
     search_fields, highlights = get_search_fields(request, doc_types)
 
