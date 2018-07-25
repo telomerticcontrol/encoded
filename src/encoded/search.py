@@ -849,13 +849,25 @@ def search(context, request, search_type=None, return_generator=False):
                     'icon': 'summary',
                 })
     print('*results*'*5)
-    print((doc_types > new_doc_types) - (doc_types < new_doc_types))
+    a_dict = doc_types
+    b_dict = new_doc_types)
+    print((a_dict > b_dict) - (a_dict < b_dict))
     print(doc_types, new_doc_types)
+    print()
     print(result['clear_filters'] == result_clear_filters)
     print(result['clear_filters'], result_clear_filters)
-    print(result['filters'] == result_filters)
-    print(result['filters'], result_filters)
-
+    print()
+    sorted_filters_list = sorted(result['filters'], key=lambda k: k['term'])
+    new_sorted_filters_list = sorted(result_filters, key=lambda k: k['term'])
+    print(sorted_filters_list)
+    print(new_sorted_filters_list))
+    print(len(sorted_filters_list), len(new_sorted_filters_list))
+    for index in range(len(sorted_filters_list)):
+        a_dict = sorted_filters_list[index]
+        b_dict = new_sorted_filters_list[index]
+        print((a_dict > b_dict) - (a_dict < b_dict))
+        print(result['filters'], result_filters)
+    print()
     search_fields, highlights = get_search_fields(request, doc_types)
 
     # Builds filtered query which supports multiple facet selection
