@@ -698,7 +698,9 @@ def get_clear_query(req_search_term, new_doc_types):
         ])
     else:
         clear_qs = urlencode([("type", doc_type) for doc_type in new_doc_types])
-    return "?{}".format(clear_qs)
+    if clear_qs:
+        return "?{}".format(clear_qs)
+    return ''
 
 
 @view_config(route_name='search', request_method='GET', permission='search')
