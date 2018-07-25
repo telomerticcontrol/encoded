@@ -714,7 +714,10 @@ def get_result_filters(doc_types, req_reg_types, req_path, req_param_items):
                 print(k, v)
                 if not k == 'type':
                     keep_items.append((k.encode('utf-8'), v.encode('utf-8')))
-                elif not ti is req_reg_types['Item' if v == '*' else v]:
+                else:
+                    print(ti)
+                    print(req_reg_types['Item' if v == '*' else v])
+                    # if not ti is req_reg_types['Item' if v == '*' else v]:
                     keep_items.append((k.encode('utf-8'), v.encode('utf-8')))
             qs = urlencode(keep_items)
             print('end get_result_filters', qs)
