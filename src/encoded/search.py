@@ -737,7 +737,25 @@ def search(context, request, search_type=None, return_generator=False):
     from_, size = get_pagination(request)
 
     # looks at searchTerm query parameter, sets to '*' if none, and creates antlr/lucene query for fancy stuff
-    search_term = prepare_search_term(request)
+   search_term = prepare_search_term(request)
+
+    ## converts type= query parameters to list of doc_types to search, "*" becomes super class Item
+    if search_type is None:
+        doc_types = request.params.getall('type')
+        if '*' in doc_types:
+            doc_types = ['Item']
+
+    else:
+        doc_types = [search_type]
+
+    # Normalize to item_type
+    try:
+        doc_types = sorted({types[name].name for name in doc_types})
+    except KeyError:
+        # Check for invalid types
+        bad_types = [t for t in doc_types if t not in types]
+        msg = "Invalid type: {}".format(', '.join(bad_types))
+        raise HTTPBadRequest(explanation=msg)
 
     # Clear Filters path -- make a path that clears all non-datatype filters.
     # this saves the searchTerm when you click clear filters
