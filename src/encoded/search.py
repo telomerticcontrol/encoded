@@ -665,23 +665,27 @@ def iter_long_json(name, iterable, other):
         yield ']' + other_stuff + '}'
 
 
+def check_doc_types(base_types, input_types):
+    good = []
+    bad = []
+    for input_type in input_types:
+        if input_type in base_types:
+            good.append(base_types[input_type].name)
+        else:
+            bad.append(input_type)
+    return good, bad
+
+
 def get_doc_types(search_type, req_reg_types, req_doc_types):
-    doc_types = []
-    bad_doc_types = []
-    check_doc_types = []
+    doc_types_to_check = []
     if search_type is not None:
-        check_doc_types = [search_type]
+        doc_types_to_check = [search_type]
     elif req_doc_types:
         if '*' in req_doc_types:
-            check_doc_types = ['Item']
+            doc_types_to_check = ['Item']
         else:
-            check_doc_types = req_doc_types
-    if check_doc_types:
-        for check_doc_type in check_doc_types:
-            if check_doc_type in req_reg_types:
-                doc_types.append(req_reg_types[check_doc_type].name)
-            else:
-                bad_doc_types.append(check_doc_type)
+            doc_types_to_check = req_doc_types
+    doc_types, bad_doc_types = check_doc_types(req_reg_types, doc_types_to_check)
     doc_types = sorted(doc_types)
     return doc_types, bad_doc_types
 
@@ -706,6 +710,7 @@ def search(context, request, search_type=None, return_generator=False):
         request.registry[TYPES],
         request.params.getall('type'),
     )
+    clear_filters = request.route_path('search', slash='/')
     if bad_doc_types:
         msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
@@ -714,7 +719,6 @@ def search(context, request, search_type=None, return_generator=False):
             new_doc_types = ['Item']
         else:
             new_doc_types = DEFAULT_DOC_TYPES
-        clear_filters = request.route_path('search', slash='/')
     else:
         if request.params.getall('searchTerm'):
             clear_qs = urlencode([
@@ -723,7 +727,7 @@ def search(context, request, search_type=None, return_generator=False):
             ])
         else:
             clear_qs = urlencode([("type", doc_type) for doc_type in new_doc_types])
-        clear_filters = request.route_path('search', slash='/') + '?' + clear_qs
+        clear_filters += '?' + clear_qs
 
     # gets schemas for all types
     result = {
