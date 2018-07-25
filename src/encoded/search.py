@@ -690,6 +690,17 @@ def get_doc_types(search_type, req_reg_types, req_doc_types):
     return doc_types, bad_doc_types
 
 
+def get_clear_query(req_search_term, new_doc_types):
+    if req_search_term:
+        clear_qs = urlencode([
+            ("searchTerm", searchterm)
+            for searchterm in req_search_term
+        ])
+    else:
+        clear_qs = urlencode([("type", doc_type) for doc_type in new_doc_types])
+    return "? {}".format(clear_qs)
+
+
 @view_config(route_name='search', request_method='GET', permission='search')
 def search(context, request, search_type=None, return_generator=False):
     """
@@ -705,12 +716,13 @@ def search(context, request, search_type=None, return_generator=False):
     from_, size = get_pagination(request)
     search_term = prepare_search_term(request)
 
+    result_clear_filters = request.route_path('search', slash='/')
+    result_filters = []
     new_doc_types, bad_doc_types = get_doc_types(
         search_type,
         request.registry[TYPES],
         request.params.getall('type'),
     )
-    clear_filters = request.route_path('search', slash='/')
     if bad_doc_types:
         msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
@@ -727,7 +739,10 @@ def search(context, request, search_type=None, return_generator=False):
             ])
         else:
             clear_qs = urlencode([("type", doc_type) for doc_type in new_doc_types])
-        clear_filters += '?' + clear_qs
+        result_clear_filters += get_clear_query(
+            request.params.getall('searchTerm'),
+            new_doc_types,
+        )
 
     # gets schemas for all types
     result = {
@@ -816,7 +831,7 @@ def search(context, request, search_type=None, return_generator=False):
                 })
     print('*results*'*5)
     print((doc_types > new_doc_types) - (doc_types < new_doc_types))
-    print(result['clear_filters'] == clear_filters)
+    print(result['clear_filters'] == result_clear_filters)
     search_fields, highlights = get_search_fields(request, doc_types)
 
     # Builds filtered query which supports multiple facet selection
