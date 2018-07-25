@@ -668,6 +668,7 @@ def iter_long_json(name, iterable, other):
 def get_doc_types(search_type, req_reg_types, req_doc_types, req_param_mode):
     doc_types = []
     bad_doc_types = []
+    check_doc_types = []
     if search_type is not None:
         check_doc_types = [search_type]
     elif req_doc_types:
