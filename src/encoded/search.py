@@ -752,12 +752,13 @@ def search(context, request, search_type=None, return_generator=False):
             new_doc_types = ['Item']
         else:
             new_doc_types = DEFAULT_DOC_TYPES
-    result_filters = get_result_filters(
-        new_doc_types,
-        request.registry[TYPES],
-        request.path,
-        request.params.items(),
-    )
+    else:
+        result_filters = get_result_filters(
+            new_doc_types,
+            request.registry[TYPES],
+            request.path,
+            request.params.items(),
+        )
 
 
     # gets schemas for all types
