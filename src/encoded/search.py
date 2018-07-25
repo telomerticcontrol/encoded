@@ -864,7 +864,8 @@ def search(context, request, search_type=None, return_generator=False):
     print(new_sorted_filters_list)
     print(len(sorted_filters_list) == len(new_sorted_filters_list), len(sorted_filters_list), len(new_sorted_filters_list))
     for index in range(len(sorted_filters_list)):
-        print((a_dict > b_dict) - (a_dict < b_dict))
+        print(sorted_filters_list[index])
+        print(new_sorted_filters_list[index])
     print()
     search_fields, highlights = get_search_fields(request, doc_types)
 
