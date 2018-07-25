@@ -748,6 +748,7 @@ def search(context, request, search_type=None, return_generator=False):
     clear_queuy_filter = get_clear_query(request.params.getall('searchTerm'), new_doc_types,)
     result_clear_filters = request.route_path('search', slash='/') + clear_queuy_filter
     if not new_doc_types:
+        result_filters = []
         if request.params.get('mode') == 'picker':
             new_doc_types = ['Item']
         else:
