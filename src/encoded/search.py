@@ -716,33 +716,25 @@ def search(context, request, search_type=None, return_generator=False):
     from_, size = get_pagination(request)
     search_term = prepare_search_term(request)
 
-    result_clear_filters = request.route_path('search', slash='/')
-    result_filters = []
     new_doc_types, bad_doc_types = get_doc_types(
         search_type,
         request.registry[TYPES],
         request.params.getall('type'),
     )
+    result_clear_filters = request.route_path('search', slash='/')
+    result_filters = []
     if bad_doc_types:
         msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
-    elif not new_doc_types:
+    result_clear_filters += get_clear_query(
+        request.params.getall('searchTerm'),
+        new_doc_types,
+    )
+    if not new_doc_types:
         if request.params.get('mode') == 'picker':
             new_doc_types = ['Item']
         else:
             new_doc_types = DEFAULT_DOC_TYPES
-    else:
-        if request.params.getall('searchTerm'):
-            clear_qs = urlencode([
-                ("searchTerm", searchterm)
-                for searchterm in request.params.getall('searchTerm')
-            ])
-        else:
-            clear_qs = urlencode([("type", doc_type) for doc_type in new_doc_types])
-        result_clear_filters += get_clear_query(
-            request.params.getall('searchTerm'),
-            new_doc_types,
-        )
 
     # gets schemas for all types
     result = {
@@ -834,6 +826,7 @@ def search(context, request, search_type=None, return_generator=False):
     print(doc_types, new_doc_types)
     print(result['clear_filters'] == result_clear_filters)
     print(result['clear_filters'], result_clear_filters)
+
     search_fields, highlights = get_search_fields(request, doc_types)
 
     # Builds filtered query which supports multiple facet selection
