@@ -811,8 +811,9 @@ def search(context, request, search_type=None, return_generator=False):
                     'icon': 'summary',
                 })
     print('*results*'*5)
-    assert cmp(doc_types, new_doc_types) == 0
-    assert result['clear_filters'] == clear_filters
+    import cmp
+    print((doc_types > new_doc_types) - (doc_types < new_doc_types))
+    print(result['clear_filters'] == clear_filters)
     search_fields, highlights = get_search_fields(request, doc_types)
 
     # Builds filtered query which supports multiple facet selection
