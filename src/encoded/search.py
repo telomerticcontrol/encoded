@@ -665,36 +665,29 @@ def iter_long_json(name, iterable, other):
         yield ']' + other_stuff + '}'
 
 
-def get_doc_types(search_type, req_reg_types, req_param_types, req_param_mode):
+def get_doc_types(search_type, req_reg_types, req_doc_types, req_param_mode):
     doc_types = []
+    bad_doc_types = []
     if search_type is not None:
-        doc_types = [search_type]
-    elif req_param_types:
-        if '*' in req_param_types:
-            doc_types = ['Item']
+        check_doc_types = [search_type]
+    elif req_doc_types:
+        if '*' in req_doc_types:
+            check_doc_types = ['Item']
         else:
-            doc_types = req_param_types
-
-    # Check if in registry types
-    not_in_req_types = []
-    in_req_types = []
-    for doc_type in doc_types:
-        if doc_type in req_reg_types:
-            in_req_types.append(req_reg_types[doc_type].name)
-        else:
-            not_in_req_types.append(doc_type)
-    # Return error if params not in registry
-    if not_in_req_types:
-        msg = "Invalid type: {}".format(', '.join(not_in_req_types))
-        raise HTTPBadRequest(explanation=msg)
-
-    if in_req_types:
-        return sorted(in_req_types)
+            check_doc_types = req_doc_types
+    if check_doc_types:
+        for check_doc_type in check_doc_types:
+            if check_doc_type in req_reg_types:
+                doc_types.append(req_reg_types[check_doc_type].name)
+            else:
+                bad_doc_types.append(check_doc_type)
+    if doc_types:
+        doc_types = sorted(doc_types)
     elif req_param_mode == 'picker':
         doc_types = ['Item']
     else:
         doc_types = DEFAULT_DOC_TYPES
-    return doc_types
+    return doc_types, bad_doc_types
 
 
 @view_config(route_name='search', request_method='GET', permission='search')
@@ -703,12 +696,15 @@ def search(context, request, search_type=None, return_generator=False):
     Search view connects to ElasticSearch and returns the results
     """
     # sets up ES and checks permissions/principles
-    new_doc_types= get_doc_types(
+    new_doc_types, bad_doc_types = get_doc_types(
         search_type,
         request.registry[TYPES],
         request.params.getall('type'),
         request.params.get('mode'),
     )
+    if bad_doc_types:
+        msg = "Invalid type: {}".format(', '.join(bad_doc_types))
+        raise HTTPBadRequest(explanation=msg)
     # gets schemas for all types
     types = request.registry[TYPES]
     search_base = normalize_query(request)
