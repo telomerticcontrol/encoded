@@ -706,9 +706,9 @@ def get_clear_query(req_search_term, new_doc_types):
 def get_result_filters(doc_types, req_reg_types, req_path, req_param_items):
     result_filters = []
     for item_type in doc_types:
-        ti = req_reg_types.get(item_type)
-        print(item_type, ti)
-        if ti:
+        if item_type in req_reg_types.get(item_type)
+            ti = req_reg_types[item_type]
+            print(item_type, ti)
             qs = urlencode([
                 (k.encode('utf-8'), v.encode('utf-8'))
                 for k, v in req_param_items
