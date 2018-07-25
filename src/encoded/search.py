@@ -664,13 +664,48 @@ def iter_long_json(name, iterable, other):
         other_stuff = (',' + json.dumps(other)[1:-1]) if other else ''
         yield ']' + other_stuff + '}'
 
+
+def get_doc_types(search_type, req_reg_types, req_param_types, req_param_mode):
+    if search_type is None:
+        if '*' in req_param_types:
+            doc_types = ['Item']
+        else:
+            doc_types = req_param_types
+    else:
+        doc_types = [search_type]
+    # Check if in registry types
+    not_in_req_types = []
+    in_req_types = []
+    for doc_type in doc_types:
+        if doc_type in req_reg_types:
+            in_req_types.append(req_reg_types[doc_type].name)
+        else:
+            not_in_req_types.append(doc_type)
+    # Return error if params not in registry
+    if not_in_req_types:
+        msg = "Invalid type: {}".format(', '.join(not_in_req_types))
+        raise HTTPBadRequest(explanation=msg)
+
+    if in_req_types:
+        return sorted(in_req_types)
+    elif req_param_mode == 'picker':
+        doc_types = ['Item']
+    else:
+        doc_types = DEFAULT_DOC_TYPES
+
+
 @view_config(route_name='search', request_method='GET', permission='search')
 def search(context, request, search_type=None, return_generator=False):
     """
     Search view connects to ElasticSearch and returns the results
     """
     # sets up ES and checks permissions/principles
-
+    new_doc_types= get_doc_types(
+        search_type,
+        request.registry[TYPES],
+        request.params.getall('type'),
+        request.params.get('mode'),
+    )
     # gets schemas for all types
     types = request.registry[TYPES]
     search_base = normalize_query(request)
@@ -769,7 +804,11 @@ def search(context, request, search_type=None, return_generator=False):
                     'title': 'View summary report',
                     'icon': 'summary',
                 })
-
+    print('*results*'*5)
+    print('Original doc_type')
+    print(doc_types)
+    print('New doc_type')
+    print(new_doc_types)
     search_fields, highlights = get_search_fields(request, doc_types)
 
     # Builds filtered query which supports multiple facet selection
