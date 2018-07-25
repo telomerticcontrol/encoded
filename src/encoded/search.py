@@ -850,7 +850,7 @@ def search(context, request, search_type=None, return_generator=False):
                 })
     print('*results*'*5)
     sorted_doc_types = sorted(doc_types)
-    new_sorted_doc_types = sorted(new_sorted_doc_types)
+    new_sorted_doc_types = sorted(new_doc_types)
     print(sorted_doc_types == sorted_doc_types)
     print(sorted_doc_types)
     print(new_sorted_doc_types)
