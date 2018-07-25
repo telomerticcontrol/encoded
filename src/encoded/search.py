@@ -860,7 +860,7 @@ def search(context, request, search_type=None, return_generator=False):
     sorted_filters_list = sorted(result['filters'], key=lambda k: k['term'])
     new_sorted_filters_list = sorted(result_filters, key=lambda k: k['term'])
     print(sorted_filters_list)
-    print(new_sorted_filters_list))
+    print(new_sorted_filters_list)
     print(len(sorted_filters_list), len(new_sorted_filters_list))
     for index in range(len(sorted_filters_list)):
         a_dict = sorted_filters_list[index]
