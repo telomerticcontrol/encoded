@@ -850,7 +850,7 @@ def search(context, request, search_type=None, return_generator=False):
                 })
     print('*results*'*5)
     a_dict = doc_types
-    b_dict = new_doc_types)
+    b_dict = new_doc_types
     print((a_dict > b_dict) - (a_dict < b_dict))
     print(doc_types, new_doc_types)
     print()
