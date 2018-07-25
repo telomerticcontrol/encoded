@@ -703,6 +703,25 @@ def get_clear_query(req_search_term, new_doc_types):
     return ''
 
 
+def get_result_filters(doc_types, req_reg_types, req_path, req_param_items):
+    result_filters = []
+    for item_type in doc_types:
+        ti = req_reg_types.get(item_type)
+        print(item_type, ti)
+        if ti:
+            qs = urlencode([
+                (k.encode('utf-8'), v.encode('utf-8'))
+                for k, v in req_param_items
+                if not (k == 'type' and req_reg_types['Item' if v == '*' else v] is ti)
+            ])
+            print(qs)
+            result_filters.append({
+                'field': 'type',
+                'term': ti.name,
+                'remove': '{}?{}'.format(req_path, qs)
+            })
+    return result_filters
+
 @view_config(route_name='search', request_method='GET', permission='search')
 def search(context, request, search_type=None, return_generator=False):
     """
@@ -723,20 +742,23 @@ def search(context, request, search_type=None, return_generator=False):
         request.registry[TYPES],
         request.params.getall('type'),
     )
-    result_clear_filters = request.route_path('search', slash='/')
-    result_filters = []
     if bad_doc_types:
         msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
-    result_clear_filters += get_clear_query(
-        request.params.getall('searchTerm'),
-        new_doc_types,
-    )
+    clear_queuy_filter = get_clear_query(request.params.getall('searchTerm'), new_doc_types,)
+    result_clear_filters = request.route_path('search', slash='/') + clear_queuy_filter
     if not new_doc_types:
         if request.params.get('mode') == 'picker':
             new_doc_types = ['Item']
         else:
             new_doc_types = DEFAULT_DOC_TYPES
+    result_filters = get_result_filters(
+        doc_types,
+        request.registry[TYPES],
+        request.path,
+        request.params.items(),
+    )
+
 
     # gets schemas for all types
     result = {
@@ -796,6 +818,7 @@ def search(context, request, search_type=None, return_generator=False):
                 (k.encode('utf-8'), v.encode('utf-8'))
                 for k, v in request.params.items() if not (k == 'type' and types['Item' if v == '*' else v] is ti)
             ])
+            print(qs)
             result['filters'].append({
                 'field': 'type',
                 'term': ti.name,
