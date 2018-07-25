@@ -692,6 +692,7 @@ def get_doc_types(search_type, req_reg_types, req_param_types, req_param_mode):
         doc_types = ['Item']
     else:
         doc_types = DEFAULT_DOC_TYPES
+    return doc_types
 
 
 @view_config(route_name='search', request_method='GET', permission='search')
