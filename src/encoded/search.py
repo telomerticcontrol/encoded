@@ -701,7 +701,7 @@ def search(context, request, search_type=None, return_generator=False):
     from_, size = get_pagination(request)
     search_term = prepare_search_term(request)
 
-    doc_types, bad_doc_types = get_doc_types(
+    new_doc_types, bad_doc_types = get_doc_types(
         search_type,
         request.registry[TYPES],
         request.params.getall('type'),
@@ -709,11 +709,11 @@ def search(context, request, search_type=None, return_generator=False):
     if bad_doc_types:
         msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
-    elif not doc_types:
+    elif not new_doc_types:
         if request.params.get('mode') == 'picker':
-            doc_types = ['Item']
+            new_doc_types = ['Item']
         else:
-            doc_types = DEFAULT_DOC_TYPES
+            new_doc_types = DEFAULT_DOC_TYPES
         clear_filters = request.route_path('search', slash='/')
     else:
         if request.params.getall('searchTerm'):
@@ -722,7 +722,7 @@ def search(context, request, search_type=None, return_generator=False):
                 for searchterm in request.params.getall('searchTerm')
             ])
         else:
-            clear_qs = urlencode([("type", doc_type) for doc_type in doc_types])
+            clear_qs = urlencode([("type", doc_type) for doc_type in new_doc_types])
         clear_filters = request.route_path('search', slash='/') + '?' + clear_qs
 
     # gets schemas for all types
