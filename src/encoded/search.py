@@ -698,7 +698,7 @@ def get_clear_query(req_search_term, new_doc_types):
         ])
     else:
         clear_qs = urlencode([("type", doc_type) for doc_type in new_doc_types])
-    return "? {}".format(clear_qs)
+    return "?{}".format(clear_qs)
 
 
 @view_config(route_name='search', request_method='GET', permission='search')
@@ -831,6 +831,7 @@ def search(context, request, search_type=None, return_generator=False):
                 })
     print('*results*'*5)
     print((doc_types > new_doc_types) - (doc_types < new_doc_types))
+    print(doc_types, new_doc_types)
     clear_filter_result = result['clear_filters'] == result_clear_filters
     if not clear_filter_result:
         print(result['clear_filters'], result_clear_filters)
