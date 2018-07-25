@@ -665,7 +665,7 @@ def iter_long_json(name, iterable, other):
         yield ']' + other_stuff + '}'
 
 
-def get_doc_types(search_type, req_reg_types, req_doc_types, req_param_mode):
+def get_doc_types(search_type, req_reg_types, req_doc_types):
     doc_types = []
     bad_doc_types = []
     check_doc_types = []
@@ -682,12 +682,7 @@ def get_doc_types(search_type, req_reg_types, req_doc_types, req_param_mode):
                 doc_types.append(req_reg_types[check_doc_type].name)
             else:
                 bad_doc_types.append(check_doc_type)
-    if doc_types:
-        doc_types = sorted(doc_types)
-    elif req_param_mode == 'picker':
-        doc_types = ['Item']
-    else:
-        doc_types = DEFAULT_DOC_TYPES
+    doc_types = sorted(doc_types)
     return doc_types, bad_doc_types
 
 
@@ -697,15 +692,31 @@ def search(context, request, search_type=None, return_generator=False):
     Search view connects to ElasticSearch and returns the results
     """
     # sets up ES and checks permissions/principles
-    new_doc_types, bad_doc_types = get_doc_types(
+    doc_types, bad_doc_types = get_doc_types(
         search_type,
         request.registry[TYPES],
         request.params.getall('type'),
-        request.params.get('mode'),
     )
     if bad_doc_types:
         msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
+    elif not doc_types:
+        if request.params.get('mode') == 'picker':
+            doc_types = ['Item']
+        else:
+            doc_types = DEFAULT_DOC_TYPES
+        clear_filters = request.route_path('search', slash='/')
+    else:
+        if request.params.getall('searchTerm'):
+            clear_qs = urlencode([
+                ("searchTerm", searchterm)
+                for searchterm in request.params.getall('searchTerm')
+            ])
+        else:
+            clear_qs = urlencode([("type", doc_type) for doc_type in doc_types])
+        clear_filters = request.route_path('search', slash='/') + '?' + clear_qs
+
+
     # gets schemas for all types
     types = request.registry[TYPES]
     search_base = normalize_query(request)
@@ -727,24 +738,6 @@ def search(context, request, search_type=None, return_generator=False):
 
     # looks at searchTerm query parameter, sets to '*' if none, and creates antlr/lucene query for fancy stuff
     search_term = prepare_search_term(request)
-
-    ## converts type= query parameters to list of doc_types to search, "*" becomes super class Item
-    if search_type is None:
-        doc_types = request.params.getall('type')
-        if '*' in doc_types:
-            doc_types = ['Item']
-
-    else:
-        doc_types = [search_type]
-
-    # Normalize to item_type
-    try:
-        doc_types = sorted({types[name].name for name in doc_types})
-    except KeyError:
-        # Check for invalid types
-        bad_types = [t for t in doc_types if t not in types]
-        msg = "Invalid type: {}".format(', '.join(bad_types))
-        raise HTTPBadRequest(explanation=msg)
 
     # Clear Filters path -- make a path that clears all non-datatype filters.
     # this saves the searchTerm when you click clear filters
