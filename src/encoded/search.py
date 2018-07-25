@@ -712,7 +712,7 @@ def get_result_filters(doc_types, req_reg_types, req_path, req_param_items):
             keep_items = []
             for k, v in req_param_items:
                 print(k, v)
-                if k == 'type': continue
+                if not k == 'type': continue
                 current_type = req_reg_types['Item' if v == '*' else v]
                 print(current_type)
                 if current_type == ti: continue
