@@ -692,6 +692,15 @@ def search(context, request, search_type=None, return_generator=False):
     Search view connects to ElasticSearch and returns the results
     """
     # sets up ES and checks permissions/principles
+    types = request.registry[TYPES]
+    search_base = normalize_query(request)
+    principals = effective_principals(request)
+    es = request.registry[ELASTIC_SEARCH]
+    es_index = '_all'
+    search_audit = request.has_permission('search_audit')
+    from_, size = get_pagination(request)
+    search_term = prepare_search_term(request)
+
     doc_types, bad_doc_types = get_doc_types(
         search_type,
         request.registry[TYPES],
@@ -716,10 +725,7 @@ def search(context, request, search_type=None, return_generator=False):
             clear_qs = urlencode([("type", doc_type) for doc_type in doc_types])
         clear_filters = request.route_path('search', slash='/') + '?' + clear_qs
 
-
     # gets schemas for all types
-    types = request.registry[TYPES]
-    search_base = normalize_query(request)
     result = {
         '@context': request.route_path('jsonld_context'),
         '@id': '/search/' + search_base,
@@ -727,17 +733,6 @@ def search(context, request, search_type=None, return_generator=False):
         'title': 'Search',
         'filters': [],
     }
-    principals = effective_principals(request)
-    es = request.registry[ELASTIC_SEARCH]
-    es_index = '_all'
-    search_audit = request.has_permission('search_audit')
-
-
-    # extract from/size from query parameters
-    from_, size = get_pagination(request)
-
-    # looks at searchTerm query parameter, sets to '*' if none, and creates antlr/lucene query for fancy stuff
-   search_term = prepare_search_term(request)
 
     ## converts type= query parameters to list of doc_types to search, "*" becomes super class Item
     if search_type is None:
@@ -816,10 +811,8 @@ def search(context, request, search_type=None, return_generator=False):
                     'icon': 'summary',
                 })
     print('*results*'*5)
-    print('Original doc_type')
-    print(doc_types)
-    print('New doc_type')
-    print(new_doc_types)
+    assert cmp(doc_types, new_doc_types) == 0
+    assert result['clear_filters'] == clear_filters
     search_fields, highlights = get_search_fields(request, doc_types)
 
     # Builds filtered query which supports multiple facet selection
