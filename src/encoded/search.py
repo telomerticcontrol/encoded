@@ -703,28 +703,27 @@ def get_clear_query(req_search_term, new_doc_types):
     return ''
 
 
-def get_result_filters(doc_types, req_reg_types, req_path, req_param_items):
+def get_result_filters(doc_types, request):
     result_filters = []
     for item_type in doc_types:
-        if item_type in req_reg_types:
-            ti = req_reg_types[item_type]
-            print('start get_result_filters', item_type, ti)
+        if item_type in request.registry[TYPES]:
+            check_item = request.registry[TYPES][item_type]
+            print('start get_result_filters', item_type, check_item)
             keep_items = []
-            for k, v in req_param_items:
-                print(k, v)
-                if not k == 'type':
-                    keep_items.append((k.encode('utf-8'), v.encode('utf-8')))
+            for key, val in request.params.items():
+                print(key, val)
+                if not key == 'type':
+                    keep_items.append((key.encode('utf-8'), val.encode('utf-8')))
                 else:
-                    print(ti)
-                    print(req_reg_types['Item' if v == '*' else v])
-                    # if not ti is req_reg_types['Item' if v == '*' else v]:
-                    keep_items.append((k.encode('utf-8'), v.encode('utf-8')))
-            qs = urlencode(keep_items)
-            print('end get_result_filters', qs)
+                    print(check_item)
+                    print(request.registry[TYPES]['Item' if val == '*' else val])
+                    keep_items.append((key.encode('utf-8'), val.encode('utf-8')))
+            rer_params = urlencode(keep_items)
+            print('end get_result_filters', rer_params)
             result_filters.append({
                 'field': 'type',
-                'term': ti.name,
-                'remove': '{}?{}'.format(req_path, qs)
+                'term': check_item.name,
+                'remove': '{}?{}'.format(request.path, rer_params)
             })
     return result_filters
 
@@ -762,9 +761,7 @@ def search(context, request, search_type=None, return_generator=False):
     else:
         result_filters = get_result_filters(
             new_doc_types,
-            request.registry[TYPES],
-            request.path,
-            request.params.items(),
+            request,
         )
 
 
