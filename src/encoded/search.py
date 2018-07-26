@@ -714,16 +714,16 @@ def get_result_filters(doc_types, request):
                 print(key, val)
                 if not key == 'type':
                     keep_items.append((key.encode('utf-8'), val.encode('utf-8')))
-                else:
+                elif check_item is not request.registry[TYPES]['Item' if val == '*' else val]:
                     print(check_item)
                     print(request.registry[TYPES]['Item' if val == '*' else val])
                     keep_items.append((key.encode('utf-8'), val.encode('utf-8')))
-            rer_params = urlencode(keep_items)
-            print('end get_result_filters', rer_params)
+            remove_params = urlencode(keep_items)
+            print('end get_result_filters', remove_params)
             result_filters.append({
                 'field': 'type',
                 'term': check_item.name,
-                'remove': '{}?{}'.format(request.path, rer_params)
+                'remove': '{}?{}'.format(request.path, remove_params)
             })
     return result_filters
 
