@@ -8,11 +8,14 @@ from .features.conftest import app_settings, app, workbook
 
 
 def _get_terms_url(search_terms):
-    return "searchTerm={}".format('&searchTerm='.join(search_terms))
-
+    if search_terms:
+        return "searchTerm={}".format('&searchTerm='.join(search_terms))
+    return ''
 
 def _get_types_url(search_types):
-    return "type={}".format('&type='.join(search_types))
+    if search_types:
+        return "type={}".format('&type='.join(search_types))
+    return ''
 
 
 def _get_filters_data(
@@ -22,18 +25,18 @@ def _get_filters_data(
         status,
         add_mode_picker=False,
 ):
-    url = '/search/?'
+    url = '/search/'
     if search_terms:
-        url += _get_terms_url(search_terms)
+        url += '?' + _get_terms_url(search_terms)
     if search_types:
         url_types = _get_types_url(search_types)
         if search_terms:
             url += "&" + url_types
         else:
-            url += url_types
+            url += '?' + url_types
     if add_mode_picker:
-        if url[-1] == '?':
-            url += 'mode=picker'
+        if url[-1] == '/':
+            url += '?mode=picker'
         else:
             url += '&mode=picker'
         add_mode_picker=False,
@@ -50,7 +53,7 @@ def _get_filters_data(
     return url, len(res.json['filters']), res.json['clear_filters'], res_terms, res_types
 
 
-def _test_search_doc_types_one(workbook, testapp):
+def test_search_doc_types_one(workbook, testapp):
     '''
     Test search view config valid one doc type
     '''
@@ -69,7 +72,7 @@ def _test_search_doc_types_one(workbook, testapp):
     assert sorted(list(res_types)) == sorted(expected_res_types)
 
 
-def _test_search_doc_types_many(workbook, testapp):
+def test_search_doc_types_many(workbook, testapp):
     '''
     Test search view config valid many doc types
     '''
@@ -88,7 +91,7 @@ def _test_search_doc_types_many(workbook, testapp):
     assert sorted(list(res_types)) == sorted(expected_res_types)
 
 
-def _test_search_doc_types_asterisk(workbook, testapp):
+def test_search_doc_types_asterisk(workbook, testapp):
     '''
     Test search view config with asterisk in request params type
     '''
@@ -108,7 +111,7 @@ def _test_search_doc_types_asterisk(workbook, testapp):
     assert sorted(list(res_types)) == sorted(expected_res_types)
 
 
-def _test_search_type_arg_not_none(workbook, testapp):
+def test_search_type_arg_not_none(workbook, testapp):
     '''
     Test search view config search_type argument
 
@@ -119,7 +122,7 @@ def _test_search_type_arg_not_none(workbook, testapp):
     assert True
 
 
-def _test_search_doc_types_sorted(workbook, testapp):
+def test_search_doc_types_sorted(workbook, testapp):
     '''
     Test search view config valid many doc types
     '''
@@ -140,7 +143,7 @@ def _test_search_doc_types_sorted(workbook, testapp):
     assert sorted(list(res_types)) == sorted(expected_res_types)
 
 
-def _test_key_error_empty(testapp):
+def test_key_error_empty(testapp):
     '''
     Test search view config key error with empty type
     '''
@@ -151,7 +154,7 @@ def _test_key_error_empty(testapp):
     assert res.json['description'] == excepted_description
 
 
-def _test_key_error_one(testapp):
+def test_key_error_one(testapp):
     '''
     Test search view config key error with one bad type
     '''
@@ -162,7 +165,7 @@ def _test_key_error_one(testapp):
     assert res.json['description'] == excepted_description
 
 
-def _test_key_error_many(testapp):
+def test_key_error_many(testapp):
     '''
     Test search view config key error with many bad type
     '''
@@ -173,7 +176,7 @@ def _test_key_error_many(testapp):
     assert res.json['description'] == excepted_description
 
 
-def _test_key_error_mixed(testapp):
+def test_key_error_mixed(testapp):
     '''
     Test search view config key error with bad and good types
     '''
@@ -186,7 +189,7 @@ def _test_key_error_mixed(testapp):
     assert res.json['description'] == excepted_description
 
 
-def _test_search_term_only_one(workbook, testapp):
+def test_search_term_only_one(workbook, testapp):
     '''
     Test search view config one valid search term
     '''
@@ -205,7 +208,7 @@ def _test_search_term_only_one(workbook, testapp):
     assert sorted(list(res_types)) == sorted(expected_res_types)
 
 
-def _test_search_term_only_many(workbook, testapp):
+def test_search_term_only_many(workbook, testapp):
     '''
     Test search view config many valid search terms
     '''
@@ -226,7 +229,7 @@ def _test_search_term_only_many(workbook, testapp):
     assert sorted(list(res_types)) == sorted(expected_res_types)
 
 
-def _test_search_term_many_and_type(workbook, testapp):
+def test_search_term_many_and_type(workbook, testapp):
     '''
     Test search view config many valid search terms with one type
     '''
@@ -246,7 +249,7 @@ def _test_search_term_many_and_type(workbook, testapp):
     assert sorted(list(res_types)) == sorted(expected_res_types)
 
 
-def _test_search_term_many_and_types(workbook, testapp):
+def test_search_term_many_and_types(workbook, testapp):
     '''
     Test search view config many valid search terms with many types
     '''
