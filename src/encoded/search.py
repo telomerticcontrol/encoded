@@ -16,6 +16,14 @@ from collections import OrderedDict
 from .vis_defines import vis_format_url
 from collections import OrderedDict
 
+from encoded.viewconfigs.search_view import (
+        get_clear_filters,
+        get_default_doc_types,
+        get_doc_types_filters,
+        get_pre_doc_types,
+        get_views_for_single_doc_type,
+        )
+
 
 CHAR_COUNT = 32
 
@@ -40,18 +48,7 @@ audit_facets = [
 ]
 
 
-DEFAULT_DOC_TYPES = [
-    'AntibodyLot',
-    'Award',
-    'Biosample',
-    'Dataset',
-    'GeneticModification',
-    'Page',
-    'Pipeline',
-    'Publication',
-    'Software',
-    'Target',
-]
+
 
 
 def sort_query(unsorted_query):
@@ -679,187 +676,95 @@ def search(context, request, search_type=None, return_generator=False):
         '@id': '/search/' + search_base,
         '@type': ['Search'],
         'title': 'Search',
-        'filters': [],
     }
     principals = effective_principals(request)
     es = request.registry[ELASTIC_SEARCH]
     es_index = '_all'
     search_audit = request.has_permission('search_audit')
-
-
-    # extract from/size from query parameters
     from_, size = get_pagination(request)
-
-    # looks at searchTerm query parameter, sets to '*' if none, and creates antlr/lucene query for fancy stuff
     search_term = prepare_search_term(request)
-
-    ## converts type= query parameters to list of doc_types to search, "*" becomes super class Item
-    if search_type is None:
-        doc_types = request.params.getall('type')
-        if '*' in doc_types:
-            doc_types = ['Item']
-
-    else:
-        doc_types = [search_type]
-
-    # Normalize to item_type
-    try:
-        doc_types = sorted({types[name].name for name in doc_types})
-    except KeyError:
-        # Check for invalid types
-        bad_types = [t for t in doc_types if t not in types]
-        msg = "Invalid type: {}".format(', '.join(bad_types))
+    doc_types, bad_doc_types = get_pre_doc_types(
+        request.registry[TYPES],
+        request.params.getall('type'),
+        search_type
+    )
+    if bad_doc_types:
+        msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
-
-    # Clear Filters path -- make a path that clears all non-datatype filters.
-    # this saves the searchTerm when you click clear filters
-    # http://stackoverflow.com/questions/16491988/how-to-convert-a-list-of-strings-to-a-query-string#answer-16492046
-    searchterm_specs = request.params.getall('searchTerm')
-    searchterm_only = urlencode([("searchTerm", searchterm) for searchterm in searchterm_specs])
-    if searchterm_only:
-        # Search term in query string; clearing keeps that
-        clear_qs = searchterm_only
-    else:
-        # Possibly type(s) in query string
-        clear_qs = urlencode([("type", typ) for typ in doc_types])
-    result['clear_filters'] = request.route_path('search', slash='/') + (('?' + clear_qs) if clear_qs else '')
-
-    # Building query for filters
+    result['clear_filters'] = get_clear_filters(
+        request.params.getall('searchTerm'),
+        request.route_path('search', slash='/'),
+        doc_types,
+    )
     if not doc_types:
-        # For form editing embedded searches
-        if request.params.get('mode') == 'picker':
-            doc_types = ['Item']
-        # For /search/ with no type= use defalts
-        else:
-            doc_types = DEFAULT_DOC_TYPES
+        doc_types = get_default_doc_types(request.params.get('mode'))
+        result['filters'] = []
     else:
-        # TYPE filters that were set by UI for labeling, only seen with >1 types
-        # Probably this is why filtering Items with subclasses doesn't work right
-        # i.e., search/?type=Dataset   Type is not a regular filter/facet.
-        for item_type in doc_types:
-            ti = types[item_type]
-            qs = urlencode([
-                (k.encode('utf-8'), v.encode('utf-8'))
-                for k, v in request.params.items() if not (k == 'type' and types['Item' if v == '*' else v] is ti)
-            ])
-            result['filters'].append({
-                'field': 'type',
-                'term': ti.name,
-                'remove': '{}?{}'.format(request.path, qs)
-            })
-
-        # Add special views like Report and Matrix if search is a single type
-        if len(doc_types) == 1:
-            result['views'] = views = []
-            views.append({
-                'href': request.route_path('report', slash='/') + search_base,
-                'title': 'View tabular report',
-                'icon': 'table',
-            })
-            # matrix is encoded in schema for type
-            if hasattr(ti.factory, 'matrix'):
-                views.append({
-                    'href': request.route_path('matrix', slash='/') + search_base,
-                    'title': 'View summary matrix',
-                    'icon': 'th',
-                })
-            if hasattr(ti.factory, 'summary_data'):
-                views.append({
-                    'href': request.route_path('summary', slash='/') + search_base,
-                    'title': 'View summary report',
-                    'icon': 'summary',
-                })
-
+        result['filters'] = get_doc_types_filters(
+            request.registry[TYPES],
+            request.params.items(),
+            request.path,
+            doc_types,
+        )
+    # Stage One Above
+    # Stage Two Starts
     search_fields, highlights = get_search_fields(request, doc_types)
-
-    # Builds filtered query which supports multiple facet selection
-    query = get_filtered_query(search_term,
-                               search_fields,
-                               sorted(list_result_fields(request, doc_types)),
-                               principals,
-                               doc_types)
-
-    #  Columns is used in report view
+    query = get_filtered_query(
+        search_term,
+        search_fields,
+        sorted(list_result_fields(request, doc_types)),
+        principals,
+        doc_types
+    )
     schemas = [types[doc_type].schema for doc_type in doc_types]
     columns = list_visible_columns_for_schemas(request, schemas)
-    # and here it is attached to the result for the UI
     if columns:
         result['columns'] = columns
-
-    # If no text search, use match_all query instead of query_string
     if search_term == '*':
-        # query['query']['match_all'] = {}
         del query['query']['query_string']
-    # If searching for more than one type, don't specify which fields to search
     else:
-        # del query['query']['bool']['must']['multi_match']['fields']
         query['query']['query_string']['fields'].extend(['_all', '*.uuid', '*.md5sum', '*.submitted_file_name'])
-
-
-    # Set sort order
     set_sort_order(request, search_term, types, doc_types, query, result)
-
-    # Setting filters
     used_filters = set_filters(request, query, result)
-
-    # Adding facets to the query
     facets = [
         ('type', {'title': 'Data Type'}),
     ]
     if len(doc_types) == 1 and 'facets' in types[doc_types[0]].schema:
         facets.extend(types[doc_types[0]].schema['facets'].items())
-
-    # Display all audits if logged in, or all but INTERNAL_ACTION if logged out
     for audit_facet in audit_facets:
         if search_audit and 'group.submitter' in principals or 'INTERNAL_ACTION' not in audit_facet[0]:
             facets.append(audit_facet)
-
     query['aggs'] = set_facets(facets, used_filters, principals, doc_types)
-
-    # Search caching uses JSON as cache key, hence sorting the query
     query = sort_query(query)
-
-    # Decide whether to use scan for results.
     do_scan = size is None or size > 1000
-
-    # When type is known, route search request to relevant index
     if not request.params.get('type') or 'Item' in doc_types:
         es_index = '_all'
     else:
         es_index = [types[type_name].item_type for type_name in doc_types if hasattr(types[type_name], 'item_type')]
+    # Stage Two above
+    # result['columns']
+    # _from, size, query, result, used_filters, facets, do_scan, es_index
 
-    # Execute the query
+    # STage Three Below
     if do_scan:
         es_results = es.search(body=query, index=es_index, search_type='query_then_fetch')
     else:
         es_results = es.search(body=query, index=es_index, from_=from_, size=size, request_cache=True)
-
-
     result['total'] = total = es_results['hits']['total']
-
     schemas = (types[item_type].schema for item_type in doc_types)
     result['facets'] = format_facets(
         es_results, facets, used_filters, schemas, total, principals)
-
-    # Add batch actions
     result.update(search_result_actions(request, doc_types, es_results))
-
-
-    # Add all link for collections
     if size is not None and size < result['total']:
         params = [(k, v) for k, v in request.params.items() if k != 'limit']
         params.append(('limit', 'all'))
         result['all'] = '%s?%s' % (request.resource_path(context), urlencode(params))
-
     if not result['total']:
-        # http://googlewebmastercentral.blogspot.com/2014/02/faceted-navigation-best-and-5-of-worst.html
         request.response.status_code = 404
         result['notification'] = 'No results found'
         result['@graph'] = []
         return result if not return_generator else []
-
     result['notification'] = 'Success'
-    # Format results for JSON-LD
     if not do_scan:
         graph = format_results(request, es_results['hits']['hits'], result)
         if return_generator:
@@ -867,27 +772,18 @@ def search(context, request, search_type=None, return_generator=False):
         else:
             result['@graph'] = list(graph)
             return result
-
-    # Scan large result sets.
     del query['aggs']
     if size is None:
-        # preserve_order=True has unexpected results in clustered environment
-        # https://github.com/elastic/elasticsearch-py/blob/master/elasticsearch/helpers/__init__.py#L257
         hits = scan(es, query=query, index=es_index, preserve_order=False)
     else:
         hits = scan(es, query=query, index=es_index, from_=from_, size=size, preserve_order=False)
     graph = format_results(request, hits, result)
-
-    # Support for request.embed() and `return_generator`
     if request.__parent__ is not None or return_generator:
         if return_generator:
             return graph
         else:
             result['@graph'] = list(graph)
             return result
-
-    # Stream response using chunked encoding.
-    # XXX BeforeRender event listeners not called.
     app_iter = iter_long_json('@graph', graph, result)
     request.response.content_type = 'application/json'
     if str is bytes:  # Python 2 vs 3 wsgi differences
