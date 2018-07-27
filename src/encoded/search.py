@@ -26,7 +26,7 @@ from encoded.viewconfigs.search_view import (
 
 
 CHAR_COUNT = 32
-
+ES_QUERY_EXTEND = ['_all', '*.uuid', '*.md5sum', '*.submitted_file_name']
 
 def includeme(config):
     config.add_route('search', '/search{slash:/?}')
@@ -666,23 +666,6 @@ def search(context, request, search_type=None, return_generator=False):
     """
     Search view connects to ElasticSearch and returns the results
     """
-    # sets up ES and checks permissions/principles
-
-    # gets schemas for all types
-    types = request.registry[TYPES]
-    search_base = normalize_query(request)
-    result = {
-        '@context': request.route_path('jsonld_context'),
-        '@id': '/search/' + search_base,
-        '@type': ['Search'],
-        'title': 'Search',
-    }
-    principals = effective_principals(request)
-    es = request.registry[ELASTIC_SEARCH]
-    es_index = '_all'
-    search_audit = request.has_permission('search_audit')
-    from_, size = get_pagination(request)
-    search_term = prepare_search_term(request)
     doc_types, bad_doc_types = get_pre_doc_types(
         request.registry[TYPES],
         request.params.getall('type'),
@@ -691,23 +674,35 @@ def search(context, request, search_type=None, return_generator=False):
     if bad_doc_types:
         msg = "Invalid type: {}".format(', '.join(bad_doc_types))
         raise HTTPBadRequest(explanation=msg)
-    result['clear_filters'] = get_clear_filters(
+    result_clear_filters = get_clear_filters(
         request.params.getall('searchTerm'),
         request.route_path('search', slash='/'),
         doc_types,
     )
     if not doc_types:
         doc_types = get_default_doc_types(request.params.get('mode'))
-        result['filters'] = []
+        result_filters = []
     else:
-        result['filters'] = get_doc_types_filters(
+        result_filters = get_doc_types_filters(
             request.registry[TYPES],
             request.params.items(),
             request.path,
             doc_types,
         )
     # Stage One Above
+    # request, doc_types, search_term, result_clear_filters, result_filters
+
     # Stage Two Starts
+    result = {
+        'clear_filters': result_clear_filters,
+        'filters': result_filters,
+    }
+    principals = effective_principals(request)
+    registry_types = request.registry[TYPES]
+    from_, size = get_pagination(request)
+    search_audit = request.has_permission('search_audit')
+    search_base = normalize_query(request)
+    search_term = prepare_search_term(request)
     search_fields, highlights = get_search_fields(request, doc_types)
     query = get_filtered_query(
         search_term,
@@ -716,23 +711,30 @@ def search(context, request, search_type=None, return_generator=False):
         principals,
         doc_types
     )
-    schemas = [types[doc_type].schema for doc_type in doc_types]
+    schemas = [registry_types[doc_type].schema for doc_type in doc_types]
     columns = list_visible_columns_for_schemas(request, schemas)
     if columns:
         result['columns'] = columns
     if search_term == '*':
         del query['query']['query_string']
     else:
-        query['query']['query_string']['fields'].extend(['_all', '*.uuid', '*.md5sum', '*.submitted_file_name'])
-    set_sort_order(request, search_term, types, doc_types, query, result)
+        query['query']['query_string']['fields'].extend(ES_QUERY_EXTEND)
+    result['@id'] = '@id': '/search/' + search_base,
+    result['@context'] = request.route_path('jsonld_context'),
+    result['@type'] = ['Search'],
+    result['title'] = 'Search',
+    set_sort_order(request, search_term, registry_types, doc_types, query, result)
     used_filters = set_filters(request, query, result)
     facets = [
         ('type', {'title': 'Data Type'}),
     ]
-    if len(doc_types) == 1 and 'facets' in types[doc_types[0]].schema:
-        facets.extend(types[doc_types[0]].schema['facets'].items())
+    if len(doc_types) == 1 and 'facets' in registry_types[doc_types[0]].schema:
+        facets.extend(registry_types[doc_types[0]].schema['facets'].items())
     for audit_facet in audit_facets:
-        if search_audit and 'group.submitter' in principals or 'INTERNAL_ACTION' not in audit_facet[0]:
+        if (
+                search_audit and 'group.submitter' in principals
+                or 'INTERNAL_ACTION' not in audit_facet[0]
+            ):
             facets.append(audit_facet)
     query['aggs'] = set_facets(facets, used_filters, principals, doc_types)
     query = sort_query(query)
@@ -740,18 +742,34 @@ def search(context, request, search_type=None, return_generator=False):
     if not request.params.get('type') or 'Item' in doc_types:
         es_index = '_all'
     else:
-        es_index = [types[type_name].item_type for type_name in doc_types if hasattr(types[type_name], 'item_type')]
+        es_index = [
+            registry_types[type_name].item_type
+            for type_name in doc_types
+            if hasattr(registry_types[type_name], 'item_type')
+        ]
     # Stage Two above
     # result['columns']
-    # _from, size, query, result, used_filters, facets, do_scan, es_index
+    # request, query, result, used_filters, facets, do_scan, es_index
 
     # STage Three Below
+    elastic_search = request.registry[ELASTIC_SEARCH]
+    es_index = '_all'
     if do_scan:
-        es_results = es.search(body=query, index=es_index, search_type='query_then_fetch')
+        es_results = elastic_search.search(
+            body=query,
+            index=es_index,
+            search_type='query_then_fetch'
+        )
     else:
-        es_results = es.search(body=query, index=es_index, from_=from_, size=size, request_cache=True)
+        es_results = elastic_search.search(
+            body=query,
+            index=es_index,
+            from_=from_,
+            size=size,
+            request_cache=True
+        )
     result['total'] = total = es_results['hits']['total']
-    schemas = (types[item_type].schema for item_type in doc_types)
+    schemas = (registry_types[item_type].schema for item_type in doc_types)
     result['facets'] = format_facets(
         es_results, facets, used_filters, schemas, total, principals)
     result.update(search_result_actions(request, doc_types, es_results))
@@ -769,21 +787,26 @@ def search(context, request, search_type=None, return_generator=False):
         graph = format_results(request, es_results['hits']['hits'], result)
         if return_generator:
             return graph
-        else:
-            result['@graph'] = list(graph)
-            return result
+        result['@graph'] = list(graph)
+        return result
     del query['aggs']
     if size is None:
-        hits = scan(es, query=query, index=es_index, preserve_order=False)
+        hits = scan(elastic_search, query=query, index=es_index, preserve_order=False)
     else:
-        hits = scan(es, query=query, index=es_index, from_=from_, size=size, preserve_order=False)
+        hits = scan(
+            elastic_search,
+            query=query,
+            index=es_index,
+            from_=from_,
+            size=size,
+            preserve_order=False
+        )
     graph = format_results(request, hits, result)
     if request.__parent__ is not None or return_generator:
         if return_generator:
             return graph
-        else:
-            result['@graph'] = list(graph)
-            return result
+        result['@graph'] = list(graph)
+        return result
     app_iter = iter_long_json('@graph', graph, result)
     request.response.content_type = 'application/json'
     if str is bytes:  # Python 2 vs 3 wsgi differences
