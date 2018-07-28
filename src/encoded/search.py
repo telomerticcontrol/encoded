@@ -198,7 +198,7 @@ def matrix(context, request):
 
     search_term = prepare_search_term(request)
 
-    search_fields, highlights = get_search_fields(request, doc_types)
+    search_fields, highlights = get_search_fields(request.registry[TYPES], doc_types)
 
     # Builds filtered query which supports multiple facet selection
     query = get_filtered_query(search_term,
@@ -343,7 +343,7 @@ def news(context, request):
     doc_types = ['Page']
 
     # Get the fields we want to receive from the search.
-    search_fields, highlights = get_search_fields(request, doc_types)
+    search_fields, highlights = get_search_fields(request.registry[TYPES], doc_types)
 
     # Build filtered query for Page items for news.
     query = get_filtered_query('*',
@@ -466,7 +466,7 @@ def audit(context, request):
 
     search_term = prepare_search_term(request)
 
-    search_fields, highlights = get_search_fields(request, doc_types)
+    search_fields, highlights = get_search_fields(request.registry[TYPES], doc_types)
 
     # Builds filtered query which supports multiple facet selection
     query = get_filtered_query(search_term,
@@ -861,7 +861,7 @@ def summary(context, request):
     es_index = '_all'
     principals = effective_principals(request)
     search_term = prepare_search_term(request)
-    search_fields, highlights = get_search_fields(request, doc_types)
+    search_fields, highlights = get_search_fields(request.registry[TYPES], doc_types)
     clear_qs = urlencode([("type", typ) for typ in doc_types])
     result['clear_filters'] = request.route_path('summary', slash='/') + (('?' + clear_qs) if clear_qs else '')
     query = get_filtered_query(search_term,
