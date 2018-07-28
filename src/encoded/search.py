@@ -20,21 +20,23 @@ from encoded.viewconfigs import (
 from encoded.viewconfigs.search_view import (
     SearchView,
 )
-from encoded.viewconfigs.search_view import (
-    format_facets,
-    format_results,
-    get_filtered_query,
-    get_pagination,
+from encoded.viewconfigs.pre_helpers import (
     get_search_fields,
+    list_result_fields,
+    normalize_query,
+    prepare_search_term,
+)
+from encoded.viewconfigs.query_helpers import (
+    get_filtered_query,
     set_facets,
     set_filters,
-    list_result_fields,
-    list_visible_cols_for_schemas,
-    prepare_search_term,
-    normalize_query,
+)
+from encoded.viewconfigs.post_helpers import (
+    get_pagination,
+    format_facets,
+    format_results,
     search_result_actions,
 )
-
 
 
 CHAR_COUNT = 32
@@ -129,7 +131,7 @@ def report(context, request):
         'title': 'View results as list',
         'icon': 'list-alt',
     }
-    search_base = normalize_query(request)
+    search_base = normalize_query(request.registry[TYPES], request.params.items())
     res['@id'] = '/report/' + search_base
     res['download_tsv'] = request.route_path('report_download') + search_base
     res['title'] = 'Report'
@@ -143,7 +145,7 @@ def matrix(context, request):
     """
     Return search results aggregated by x and y buckets for building a matrix display.
     """
-    search_base = normalize_query(request)
+    search_base = normalize_query(request.registry[TYPES], request.params.items())
     result = {
         '@context': request.route_path('jsonld_context'),
         '@id': request.route_path('matrix', slash='/') + search_base,
@@ -332,7 +334,7 @@ def news(context, request):
     types = request.registry[TYPES]
     es = request.registry[ELASTIC_SEARCH]
     es_index = 'page'
-    search_base = normalize_query(request)
+    search_base = normalize_query(request.registry[TYPES], request.params.items())
     principals = effective_principals(request)
 
     # Set up initial results metadata; we'll add the search results to them later.
@@ -351,11 +353,17 @@ def news(context, request):
     search_fields, highlights = get_search_fields(request.registry[TYPES], doc_types)
 
     # Build filtered query for Page items for news.
-    query = get_filtered_query('*',
-                               search_fields,
-                               sorted(list_result_fields(request, doc_types)),
-                               principals,
-                               doc_types)
+    query = get_filtered_query(
+        '*',
+        search_fields,
+        sorted(
+            list_result_fields(
+                request, doc_types, request.registry[TYPES]
+            )
+        ),
+        principals,
+        doc_types
+    )
 
     # Keyword search on news items is not implemented yet
     del query['query']['query_string']
@@ -413,7 +421,7 @@ def audit(context, request):
     """
     Return search results aggregated by x and y buckets for building a matrix display.
     """
-    search_base = normalize_query(request)
+    search_base = normalize_query(request.registry[TYPES], request.params.items())
     result = {
         '@context': request.route_path('jsonld_context'),
         '@id': request.route_path('audit', slash='/') + search_base,
@@ -819,7 +827,7 @@ def audit(context, request):
 
 @view_config(route_name='summary', request_method='GET', permission='search')
 def summary(context, request):
-    search_base = normalize_query(request)
+    search_base = normalize_query(request.registry[TYPES], request.params.items())
     result = {
         '@context': request.route_path('jsonld_context'),
         '@id': request.route_path('summary', slash='/') + search_base,

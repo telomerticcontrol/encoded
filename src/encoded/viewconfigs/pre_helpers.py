@@ -4,6 +4,8 @@ Helpers function used to initialize view configs
 from collections import OrderedDict
 from urllib.parse import urlencode  # pylint: disable=import-error, no-name-in-module
 
+from pyramid.httpexceptions import HTTPBadRequest
+
 from . import (
     AUDIT_FACETS,
     DEFAULT_DOC_TYPES,
@@ -64,7 +66,7 @@ def get_facets(
         request_principals,
     ):
     '''
-    Create facets for searchj
+    Create facets for search
     '''
     facets = [('type', {'title': 'Data Type'})]
     if (len(doc_types) == 1 and
@@ -140,7 +142,7 @@ def get_views_for_single_doc_type(request, search_base, registry_type_factory):
     return views
 
 
-def list_result_fields(request, doc_types):
+def list_result_fields(request, doc_types, request_registry_types):
     """
     Returns set of fields that are requested by user or default fields
     """
@@ -153,18 +155,12 @@ def list_result_fields(request, doc_types):
         fields = [frame + '.*']
     else:
         frame = 'columns'
-        # Fields that front-end expects is not returned as an empty array.
-        # At this time, no way of knowing knowing which are those fields
-        # that are not covered by tests, hence embedded.* for _source
         fields = {'embedded.@id', 'embedded.@type'}
         if request.has_permission('search_audit'):
             fields.add('audit.*')
-        types = request.registry[TYPES]
-        schemas = [types[doc_type].schema for doc_type in doc_types]
+        schemas = [request_registry_types[doc_type].schema for doc_type in doc_types]
         columns = list_visible_cols_for_schemas(request, schemas)
         fields.update('embedded.' + column for column in columns)
-
-    # Ensure that 'audit' field is requested with _source in the ES query
     if (request.__parent__ and
             '/metadata/' in request.__parent__.url and
             request.has_permission('search_audit')):
@@ -226,3 +222,33 @@ def normalize_query(request_registry_types, request_items_gen):
         for k, v in fixed_types
     ])
     return '?' + query_str if query_str else ''
+
+
+def prepare_search_term(request):
+    '''
+    Prepare search term with lucene query
+    '''
+    from antlr4 import IllegalStateException
+    from lucenequery.prefixfields import prefixfields
+    from lucenequery import dialects
+
+    search_term = request.params.get('searchTerm', '').strip() or '*'
+    if search_term == '*':
+        return search_term
+
+    # avoid interpreting slashes as regular expressions
+    search_term = search_term.replace('/', r'\/')
+    # elasticsearch uses : as field delimiter, but we use it as namespace designator
+    # if you need to search fields you have to use @type:field
+    # if you need to search fields where the field contains ":", you will have to escape it
+    # yourself
+    if search_term.find("@type") < 0:
+        # pylint: disable=anomalous-backslash-in-string
+        search_term = search_term.replace(':', '\:')
+    try:
+        query = prefixfields('embedded.', search_term, dialects.elasticsearch)
+    except IllegalStateException:
+        msg = "Invalid query: {}".format(search_term)
+        raise HTTPBadRequest(explanation=msg)
+    else:
+        return query.getText()
