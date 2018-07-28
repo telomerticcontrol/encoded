@@ -14,9 +14,13 @@ from pyramid.security import effective_principals
 from urllib.parse import urlencode
 from collections import OrderedDict
 
-from encoded.viewconfigs.search_view import (
+from encoded.viewconfigs import (
     AUDIT_FACETS,
+)
+from encoded.viewconfigs.search_view import (
     SearchView,
+)
+from encoded.viewconfigs.search_view import (
     format_facets,
     format_results,
     get_filtered_query,
@@ -30,6 +34,7 @@ from encoded.viewconfigs.search_view import (
     normalize_query,
     search_result_actions,
 )
+
 
 
 CHAR_COUNT = 32
