@@ -5,9 +5,6 @@ from snovault.elasticsearch.indexer import MAX_CLAUSES_FOR_ES
 from pyramid.security import effective_principals
 from .search import (
     format_results,
-    set_filters,
-    set_facets,
-    get_filtered_query,
     format_facets,
     search_result_actions
 )
@@ -18,6 +15,12 @@ from urllib.parse import urlencode
 
 import logging
 import re
+
+from encoded.viewconfigs.search_view import (
+    set_facets,
+    set_filters,
+    get_filtered_query,
+)
 
 
 log = logging.getLogger(__name__)

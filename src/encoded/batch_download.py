@@ -10,7 +10,7 @@ from urllib.parse import (
     urlencode,
 )
 from .search import iter_search_results
-from .search import list_visible_columns_for_schemas
+from encoded.viewconfigs.search_view import list_visible_cols_for_schemas
 import csv
 import io
 import json
@@ -388,7 +388,7 @@ def report_download(context, request):
     def format_header(seq):
         newheader="%s\t%s%s?%s\r\n" % (currenttime, request.host_url, '/report/', request.query_string)
         return(bytes(newheader, 'utf-8'))
-       
+
 
     # Work around Excel bug; can't open single column TSV with 'ID' header
     if len(columns) == 1 and '@id' in columns:
