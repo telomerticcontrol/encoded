@@ -170,6 +170,15 @@ runcmd:
 -    swapon /swapfile
 - fi
 - set -ex
+
+  # Manually download to s3, pull from s3, and install java 8u172
+- sudo mkdir -p /usr/lib/jvm
+- sudo chmod 777 /usr/lib/jvm
+- aws --region us-west-2 s3 cp s3://encoded-conf-prod/.aws/jdk-8u172-linux-x64.tar.gz  /usr/lib/jvm/jdk-8u172-linux-x64.tar.gz
+- sudo tar -xzvf /usr/lib/jvm/jdk-8u172-linux-x64.tar.gz --directory /usr/lib/jvm/
+- sudo chmod 755 /usr/lib/jvm
+- sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/jdk1.8.0_172/bin/java 100
+
 - update-rc.d elasticsearch defaults
 - service elasticsearch restart
 - chown postgres:postgres /etc/postgresql/9.3/main/*.conf
