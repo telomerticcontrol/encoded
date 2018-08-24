@@ -326,6 +326,7 @@ write_files:
     archive_timeout = 60
     checkpoint_timeout = 1h
     hba_file = '/etc/postgresql/9.3/main/custom_pg_hba.conf'
+    listen_addresses = '0.0.0.0'
 
 - path: /etc/postgresql/9.3/main/demo.conf
   content: |
