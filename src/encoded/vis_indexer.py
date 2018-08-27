@@ -252,7 +252,7 @@ class VisIndexer(Indexer):
         return None
 
     def update_object(self, request, uuid, xmin, restart=False):
-        output = {'index_name': 'VisIndexer'}
+        output = {}
         last_exc = None
         # First get the object currently in es
         try:

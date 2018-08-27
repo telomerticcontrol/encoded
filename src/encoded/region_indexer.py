@@ -388,7 +388,7 @@ class RegionIndexer(Indexer):
 
     def update_object(self, request, dataset_uuid, force):
         request.datastore = 'elasticsearch'  # Let's be explicit
-        output = {'index_name': 'RegionIndexer'}
+        output = {}
 
         try:
             # less efficient than going to es directly but keeps methods in one place
