@@ -245,13 +245,13 @@ def all_visualizable_uuids(registry):
 class VisIndexer(Indexer):
     def __init__(self, registry):
         super(VisIndexer, self).__init__(registry)
-        self.state = VisIndexerState(self.es, self.index)  # WARNING, race condition is avoided because there is only one worker
+        self.state = VisIndexerState(self.es_wrapper, self.index)  # WARNING, race condition is avoided because there is only one worker
 
     def get_from_es(request, comp_id):
         '''Returns composite json blob from elastic-search, or None if not found.'''
         return None
 
-    def update_object(self, request, uuid, xmin, restart=False):
+    def update_object(self, request, uuid, xmin):
 
         last_exc = None
         # First get the object currently in es
