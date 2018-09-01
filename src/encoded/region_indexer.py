@@ -361,7 +361,9 @@ def index_regions(request):
         log.info("Region indexer started on %d uuid(s)" % uuid_count)
 
         result = state.start_cycle(uuids, result)
-        errors = indexer.update_objects(request, uuids, force)
+        indexer.set_force(force)
+        xmin = None
+        errors = indexer.update_objects(request, uuids, xmin)
         result = state.finish_cycle(result, errors)
         if result['indexed'] == 0:
             log.info("Region indexer added %d file(s) from %d dataset uuids" % (result['indexed'], uuid_count))
@@ -386,7 +388,7 @@ class RegionIndexer(Indexer):
         '''Returns composite json blob from elastic-search, or None if not found.'''
         return None
 
-    def update_object(self, request, dataset_uuid, force):
+    def update_object(self, request, dataset_uuid, xmin):
         request.datastore = 'elasticsearch'  # Let's be explicit
 
         try:
@@ -416,7 +418,7 @@ class RegionIndexer(Indexer):
             if self.encoded_candidate_file(afile, assay_term_name):
 
                 using = ""
-                if force:
+                if self._force:
                     using = "with FORCE"
                     #log.debug("file is a candidate: %s %s", afile['accession'], using)
                     self.remove_from_regions_es(file_uuid)  # remove all regions first
