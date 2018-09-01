@@ -252,7 +252,7 @@ class VisIndexer(Indexer):
         return None
 
     def update_object(self, request, uuid, xmin):
-
+        output = {}
         last_exc = None
         # First get the object currently in es
         try:
@@ -281,4 +281,10 @@ class VisIndexer(Indexer):
 
         if last_exc is not None:
             timestamp = datetime.datetime.now().isoformat()
-            return {'error_message': last_exc, 'timestamp': timestamp, 'uuid': str(uuid)}
+            error = {
+                'error_message': last_exc,
+                'timestamp': timestamp,
+                'uuid': str(uuid)
+            }
+            output['error'] = error
+        return output

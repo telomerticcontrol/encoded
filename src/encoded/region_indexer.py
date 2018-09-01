@@ -390,6 +390,7 @@ class RegionIndexer(Indexer):
 
     def update_object(self, request, dataset_uuid, xmin):
         request.datastore = 'elasticsearch'  # Let's be explicit
+        output = {}
 
         try:
             # less efficient than going to es directly but keeps methods in one place
@@ -397,16 +398,18 @@ class RegionIndexer(Indexer):
         except:
             log.warn("dataset is not found for uuid: %s",dataset_uuid)
             # Not an error if it wasn't found.
-            return
+            return output
 
         # TODO: add case where files are never dropped (when demos share test server this might be necessary)
         if not self.encoded_candidate_dataset(dataset):
-            return  # Note that if a dataset is no longer a candidate but it had files in regions es, they won't get removed.
+            # Note that if a dataset is no longer a candidate but it had
+            # files in regions es, they won't get removed.
+            return output
         #log.debug("dataset is a candidate: %s", dataset['accession'])
 
         assay_term_name = dataset.get('assay_term_name')
         if assay_term_name is None:
-            return
+            return output
 
         files = dataset.get('files',[])
         for afile in files:
@@ -437,7 +440,7 @@ class RegionIndexer(Indexer):
                     self.state.file_dropped(file_uuid)
 
         # TODO: gather and return errors
-
+        return output
 
     def encoded_candidate_file(self, afile, assay_term_name):
         '''returns True if an encoded file should be in regions es'''
