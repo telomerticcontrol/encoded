@@ -70,7 +70,7 @@ class VisIndexerState(IndexerState):
         uuids = []
         next_xmin = None
 
-        (undone_xmin, uuids, cycle_interrupted) = self.priority_cycle(request)
+        (undone_xmin, uuids, cycle_interrupted, _) = self.priority_cycle(request)
         # NOTE: unlike with primary_indexer priority_cycle() can be called after get_initial_state()
         if len(uuids) > 0:
             if not cycle_interrupted:  # AKA reindex signal
