@@ -32,19 +32,6 @@
         "schema_version": {
             "default": "9"
         },
-        "dbxref": {
-            "title": "External identifiers",
-            "description": "Unique identifiers from external resources (e.g. HGNC, GeneID, UniProtKB or ENSEMBL).",
-            "type": "array",
-            "default": [],
-            "uniqueItems": true,
-            "items": {
-                "title": "External identifier",
-                "description": "A unique identifier from external resource (e.g. HGNC, GeneID, UniProtKB or ENSEMBL).",
-                "comment": "Submit as database name:target name (e.g. HGNC:HMFN0395, GeneID:22809)",
-                "type":  "string"
-            }
-        },
         "target_organism": {
             "title": "Target organism",
             "description": "Organism bearing the target.",

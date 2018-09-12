@@ -81,3 +81,15 @@ class Target(SharedItem):
         # the rename dependency.
         request._linked_uuids.add(str(self.organism()))
         return None
+
+    @calculated_property(schema={
+        "title": "Gene Symbols",
+        "type": "string",
+    })
+    def dbxref(self, request, genes):
+        dbxrefs = set()
+        for gene in genes:
+            gene_props = request.embed(gene, '@@object')
+            if 'dbxrefs' in gene_props:
+                dbxrefs |= set(gene_props['dbxrefs'])
+        return list(dbxrefs)

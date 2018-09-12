@@ -166,6 +166,7 @@ def test_target_upgrade_link_to_gene(upgrader, target_8_no_genes,
     for new_target in [no_genes, one_gene, two_genes]:
         assert new_target['schema_version'] == '9'
         assert 'gene_name' not in new_target
+        assert 'dbxref' not in new_target
     assert 'genes' not in no_genes
     assert 'organism' not in no_genes
     assert no_genes['target_organism']

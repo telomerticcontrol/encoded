@@ -166,7 +166,7 @@ def target_8_9(value, system):
     gene_id_str = 'GeneID:'
     genes = [
         dbxref.replace(gene_id_str, '', 1)
-        for dbxref in value.get('dbxref', [])
+        for dbxref in value.pop('dbxref', [])
         if dbxref.startswith(gene_id_str)
     ]
     if genes:
