@@ -1,0 +1,77 @@
+[app:app]
+use = egg:encoded
+annotations_path = /srv/encoded/annotations.json
+aws_ip_ranges_path = /srv/encoded/aws-ip-ranges.json
+download_proxy = https://download.encodeproject.org/
+elasticsearch.server = 172.31.31.5:9201
+file_upload_bucket = encoded-files-dev
+file_upload_profile_name = encoded-files-upload
+ontology_path = /srv/encoded/ontology.json
+
+auth0.siteName = ENCODE DCC Submission
+postgresql.statement_timeout = 120
+pyramid.default_locale_name = en
+sqlalchemy.url = postgresql:///encoded
+tm.attempts = 3
+
+# Only run ec2metadata on ec2 instances
+# XXX really need to reorganise ini files for more reuse
+hostname_command = command -v ec2metadata > /dev/null && ec2metadata --public-hostname || hostname
+
+multiauth.policies = auth0 session remoteuser accesskey
+multiauth.groupfinder = encoded.authorization.groupfinder
+multiauth.policy.auth0.use = encoded.authentication.NamespacedAuthenticationPolicy
+multiauth.policy.auth0.base = encoded.auth0.Auth0AuthenticationPolicy
+multiauth.policy.auth0.namespace = auth0
+multiauth.policy.session.use = encoded.authentication.NamespacedAuthenticationPolicy
+multiauth.policy.session.base = pyramid.authentication.SessionAuthenticationPolicy
+multiauth.policy.session.namespace = mailto
+multiauth.policy.remoteuser.use = encoded.authentication.NamespacedAuthenticationPolicy
+multiauth.policy.remoteuser.namespace = remoteuser
+multiauth.policy.remoteuser.base = pyramid.authentication.RemoteUserAuthenticationPolicy
+multiauth.policy.accesskey.use = encoded.authentication.NamespacedAuthenticationPolicy
+multiauth.policy.accesskey.namespace = accesskey
+multiauth.policy.accesskey.base = encoded.authentication.BasicAuthAuthenticationPolicy
+multiauth.policy.accesskey.check = encoded.authentication.basic_auth_check
+# Direct file transfer from external AWS S3 to internal S3 bucket
+external_aws_s3_transfer_allow = false
+external_aws_s3_transfer_buckets = /srv/encoded/.aws/direct-external-s3-list
+
+embed_cache.capacity = 5000
+
+[composite:indexer]
+use = egg:encoded#indexer
+app = app
+path = /index
+timeout = 60
+set embed_cache.capacity = 5000
+set indexer = true
+set stage_for_followup = vis_indexer, region_indexer
+
+[composite:indexer_worker]
+use = egg:encoded#indexer
+app = app
+path = /index_worker
+timeout = 10
+set embed_cache.capacity = 5000
+set indexer_worker = true
+
+[composite:visindexer]
+use = egg:encoded#indexer
+app = app
+path = /index_vis
+timeout = 60
+set embed_cache.capacity = 5000
+set visindexer = true
+
+[composite:regionindexer]
+use = egg:encoded#indexer
+app = app
+path = /index_region
+timeout = 60
+set embed_cache.capacity = 5000
+set regionindexer = true
+
+[filter:memlimit]
+use = egg:encoded#memlimit
+rss_limit = 500MB
