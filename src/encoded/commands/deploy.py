@@ -340,6 +340,8 @@ def _get_run_args(main_args, instances_tag_data):
         }
         if main_args.no_es:
             config_file = ':cloud-config-no-es.yml'
+        elif main_args.es_worker:
+            config_file = ':cloud-config-worker.yml'
         elif main_args.cluster_name:
             config_file = ':cloud-config-cluster.yml'
             data_insert['CLUSTER_NAME'] = main_args.cluster_name
@@ -641,6 +643,11 @@ def parse_args():
         elif args.candidate:
             args.role = 'candidate'
     return args
+=======
+    parser.add_argument('--es-worker', action='store_true',
+        help=' Create ElasticSearch worker')
+    return parser.parse_args()
+>>>>>>> ENCD-XXXX Add es worker listener
 
 
 if __name__ == '__main__':
