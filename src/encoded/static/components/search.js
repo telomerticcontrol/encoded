@@ -12,7 +12,6 @@ import GenomeBrowser from './genome_browser';
 import * as globals from './globals';
 import { Attachment } from './image';
 import { BrowserSelector } from './objectutils';
-import { DbxrefList } from './dbxref';
 import Status from './status';
 import { BiosampleSummaryString, BiosampleOrganismNames } from './typeutils';
 
@@ -479,12 +478,6 @@ class TargetComponent extends React.Component {
                             {result.label}
                             {result.organism && result.organism.scientific_name ? <em>{` (${result.organism.scientific_name})`}</em> : null}
                         </a>
-                    </div>
-                    <div className="data-row">
-                        <strong>External resources: </strong>
-                        {result.dbxref && result.dbxref.length ?
-                            <DbxrefList context={result} dbxrefs={result.dbxref} />
-                        : <em>None submitted</em> }
                     </div>
                 </div>
                 {this.props.auditDetail(result.audit, result['@id'], { session: this.context.session, except: result['@id'], forcedEditLink: true })}

@@ -18,6 +18,9 @@ class Target extends React.Component {
             geneIDs = context.genes.map(gene => `GeneID:${gene.geneid}`);
         }
 
+        // Extract dbxrefs from all targeted genes and make a combined simple array of dbxref strings.
+        const dbxrefs = [].concat(...context.genes.map(gene => gene.dbxrefs));
+
         // Set up breadcrumbs
         const assayTargets = context.investigated_as.map(assayTarget => `investigated_as=${assayTarget}`);
         const crumbs = [
@@ -58,8 +61,8 @@ class Target extends React.Component {
                         <div data-test="external">
                             <dt>External resources</dt>
                             <dd>
-                                {context.dbxref.length ?
-                                    <DbxrefList context={context} dbxrefs={context.dbxref} />
+                                {dbxrefs.length ?
+                                    <DbxrefList context={context} dbxrefs={dbxrefs} />
                                 : <em>None submitted</em> }
                             </dd>
                         </div>

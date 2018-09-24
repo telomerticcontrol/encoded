@@ -32,7 +32,7 @@ describe('Test individual dbxref types', () => {
             const context = { '@type': ['Target'], genes: [{ symbol: 'CXXC1' }] };
             const wrapper = mount(
                 <DbxrefList
-                    dbxrefs={['HGNC:hCGBP', 'HGNC:ZCGPC1']}
+                    dbxrefs={['HGNC:24343']}
                     context={context}
                 />
             );
@@ -41,9 +41,8 @@ describe('Test individual dbxref types', () => {
         });
 
         it('has the correct links', () => {
-            expect(dbxLinks.length).toBe(2);
-            expect(dbxLinks.at(0).prop('href')).toEqual('http://www.genecards.org/cgi-bin/carddisp.pl?gene=CXXC1');
-            expect(dbxLinks.at(1).prop('href')).toEqual('http://www.genecards.org/cgi-bin/carddisp.pl?gene=CXXC1');
+            expect(dbxLinks.length).toBe(1);
+            expect(dbxLinks.at(0).prop('href')).toEqual('https://www.genenames.org/cgi-bin/gene_symbol_report?hgnc_id=24343');
         });
     });
 
@@ -178,7 +177,7 @@ describe('Test individual dbxref types', () => {
             const wrapperTarget = mount(
                 <DbxrefList
                     context={contextTarget}
-                    dbxrefs={['FlyBase:CG43860', 'FlyBase:FBtr0332562']}
+                    dbxrefs={['FlyBase:FBgn0264442', 'FlyBase:FBtr0332562']}
                 />
             );
 
@@ -188,16 +187,14 @@ describe('Test individual dbxref types', () => {
 
         it('has the correct links for FlyBase', () => {
             expect(dbxLinksFlyDonor.length).toBe(2);
-            expect(dbxLinksFlyDonor.at(0).prop('href')).toEqual('http://flybase.org/reports/FBst0038626.html');
-            expect(dbxLinksFlyDonor.at(1).prop('href')).toEqual('http://flybase.org/reports/FBst0000005.html');
+            expect(dbxLinksFlyDonor.at(0).prop('href')).toEqual('http://flybase.org/reports/FBst0038626');
+            expect(dbxLinksFlyDonor.at(1).prop('href')).toEqual('http://flybase.org/reports/FBst0000005');
         });
 
         it('has the correct links for Targets', () => {
             expect(dbxLinksTarget.length).toBe(2);
-            const flybaseSearchUrl = 'http://flybase.org/search/symbol/';
-
-            expect(dbxLinksTarget.at(0).prop('href')).toEqual(`${flybaseSearchUrl}CG43860`);
-            expect(dbxLinksTarget.at(1).prop('href')).toEqual(`${flybaseSearchUrl}FBtr0332562`);
+            expect(dbxLinksTarget.at(0).prop('href')).toEqual('http://flybase.org/reports/FBgn0264442');
+            expect(dbxLinksTarget.at(1).prop('href')).toEqual('http://flybase.org/reports/FBtr0332562');
         });
     });
 
