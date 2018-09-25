@@ -77,7 +77,7 @@ const LotComponent = (props, reactContext) => {
         organismTips.push(scientificName);
 
         // Add to the information on gene names from the targets
-        if (geneName.length) {
+        if (geneName.length > 0) {
             geneComponents = geneName.map(
                 symbol => <span key={symbol}>{geneComponents.length > 0 ? <span> + {symbol}</span> : <span>{symbol}</span>}</span>
             );
@@ -90,7 +90,7 @@ const LotComponent = (props, reactContext) => {
     const crumbs = [
         { id: 'Antibodies' },
         { id: organismComponents, query: organismQuery, tip: organismTips.join(' + ') },
-        { id: geneComponents.length ? geneComponents : null, query: geneQuery, tip: geneName.join(' + ') },
+        { id: geneComponents.length > 0 ? geneComponents : null, query: geneQuery, tip: geneName.join(' + ') },
     ];
 
     return (

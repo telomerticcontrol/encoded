@@ -66,7 +66,7 @@ export const dbxrefPrefixMap = {
         pattern: 'http://www.genecards.org/cgi-bin/carddisp.pl?gene={0}',
         preprocessor: (context) => {
             // For dbxrefs in targets, use the symbol of the first gene in target.genes instead of the dbxref value.
-            if (context['@type'][0] === 'Target' && context.genes) {
+            if (context['@type'][0] === 'Target' && context.genes && context.genes.length > 0) {
                 return { altValue: context.genes[0].symbol };
             }
             // If a gene displays its dbxrefs, use HGNC URL as NCBI Entrez does.

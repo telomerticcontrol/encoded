@@ -46,7 +46,7 @@ class Target extends React.Component {
                             <dd>{context.label}</dd>
                         </div>
 
-                        {geneIDs.length ?
+                        {geneIDs.length > 0 ?
                             <div data-test="gene">
                                 <dt>Target gene</dt>
                                 <dd>
