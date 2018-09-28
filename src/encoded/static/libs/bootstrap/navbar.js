@@ -62,7 +62,7 @@ export class Navbar extends React.Component {
                         <span className="icon-bar" />
                     </button>
                     {brand ?
-                        <a className="navbar-brand" href={brandlink}>{brand}</a>
+                        <a className="navbar-brand" href={brandlink}><img src="../static/img/RegulomeLogoTransparent.gif"></img></a>
                     : null}
                 </div>
 

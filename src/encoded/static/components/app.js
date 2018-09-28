@@ -13,6 +13,7 @@ import Footer from './footer';
 import Home from './home';
 import newsHead from './page';
 
+
 const portal = {
     portal_title: 'ENCODE',
     global_sections: [
@@ -24,7 +25,7 @@ const portal = {
                 { id: 'assaysearch', title: 'Search', url: '/search/?type=Experiment' },
                 { id: 'assaysummary', title: 'Summary', url: '/summary/?type=Experiment' },
                 { id: 'sep-mm-1' },
-                { id: 'region-search', title: 'Search by region', url: '/region-search/' },
+                { id: 'regulome-search', title: 'Regulome search', url: '/regulome-search/' },
                 { id: 'reference-epigenomes', title: 'Reference epigenomes', url: '/search/?type=ReferenceEpigenome' },
                 { id: 'publications', title: 'Publications', url: '/publications/' },
             ],
@@ -361,6 +362,7 @@ class App extends React.Component {
             Object.keys(this.props).forEach((propKey) => {
                 if (this.props[propKey] !== prevProps[propKey]) {
                     console.log('changed props: %s', propKey);
+                    console.log(this);
                 }
             });
         }
@@ -368,6 +370,7 @@ class App extends React.Component {
             Object.keys(this.state).forEach((stateKey) => {
                 if (this.state[stateKey] !== prevState[stateKey]) {
                     console.log('changed state: %s', stateKey);
+                    console.log(this);
                 }
             });
         }
@@ -972,6 +975,7 @@ class App extends React.Component {
                     {base ? <base href={base} /> : null}
                     <link rel="canonical" href={canonical} />
                     <script async src="//www.google-analytics.com/analytics.js" />
+                    <link rel="shortcut icon" href="/static/img/favicon.ico?7" type="image/x-icon" />
                     {this.props.inline ? <script data-prop-name="inline" dangerouslySetInnerHTML={{ __html: this.props.inline }} /> : null}
                     {this.props.styles ? <link rel="stylesheet" href={this.props.styles} /> : null}
                     {newsHead(this.props, `${hrefUrl.protocol}//${hrefUrl.host}`)}
