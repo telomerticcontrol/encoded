@@ -295,7 +295,7 @@ def region_search(context, request):
     result = {
         '@id': '/' + page + '/' + ('?' + request.query_string.split('&referrer')[0]
                                    if request.query_string else ''),
-        '@type': ['regulome-search'],
+        '@type': ['region-search'],
         'title': ('Regulome search' if regulome else 'Region search'),
         'facets': [],
         '@graph': [],
