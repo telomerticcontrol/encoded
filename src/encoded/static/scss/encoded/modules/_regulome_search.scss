@@ -1,0 +1,115 @@
+body {
+    font-family: 'Khula', sans-serif !important;
+}
+
+.navbar-nav, .navbar-search {
+    font-size: 16px;
+}
+.navbar-inverse {
+    .nav {
+        li {
+            button {
+                padding-top: 12px;
+            }
+        }
+    }
+}
+
+.input-region-error {
+    padding-top: 10px;
+}
+
+.lead-logo {
+    max-width: 600px;
+    margin: 20px auto 40px auto;
+    img {
+        width: 100%;
+    }
+}
+
+// delete this later!!!
+.test-warning {
+    display: none !important;
+}
+
+.navbar-brand {
+    width: 100px;
+    img {
+        max-width: 100%;
+    }
+}
+
+.button-container {
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+    .reg-btn {
+        margin: 10px;
+        display: inline-block;
+        padding: 5px 10px;
+        border-bottom: 2px solid $regulomeGreen;
+        color: $regulomeGreen;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+}
+
+.sequence-logo-container {
+    max-width: 400px;
+    margin: auto;
+    .sequence-logo {
+        svg {
+            max-width: 100%;
+        }
+    }
+}
+
+.data-types {
+    padding-bottom: 20px;
+    // border-bottom: solid $regulomeGray 1px;
+}
+.about-regulome {
+    h4 {
+        padding-top: 20px;
+    }
+}
+
+.about-regulome, .data-types {
+    font-family: 'Khula', sans-serif !important;
+    h4 {
+        font-weight: 700;
+    }
+
+    .data-types-instructions {
+        padding-top: 20px;
+        font-size: 16px;
+    }
+    .data-types-block {
+        margin-left: 40px;
+        h4 {
+            font-size: 1.1rem;
+            font-weight: normal;
+            text-transform: uppercase;
+            padding-top: 20px;
+        }
+    }
+
+    // p, a {
+    //     font-size: 16px;
+    // }
+
+    a {
+        color: lighten($regulomeGreen,5%);
+        text-decoration: underline;
+        &:hover {
+            color: darken($regulomeGreen,10%);
+            font-weight: 700;
+        }
+    }
+    &.introduction {
+        max-width: 800px;
+        margin: auto;
+        padding-bottom: 10px;
+        font-size: 16px;
+    }
+}
