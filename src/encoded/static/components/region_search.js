@@ -472,5 +472,5 @@ RegulomeSearch.contextTypes = {
     navigate: PropTypes.func,
 };
 
-globals.contentViews.register(RegulomeSearch, 'regulome-search');
-// globals.contentViews.register(RegulomeSearch, 'region-search');
+// globals.contentViews.register(RegulomeSearch, 'regulome-search');
+globals.contentViews.register(RegulomeSearch, 'region-search');
