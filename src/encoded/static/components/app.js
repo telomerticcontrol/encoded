@@ -25,7 +25,7 @@ const portal = {
                 { id: 'assaysearch', title: 'Search', url: '/search/?type=Experiment' },
                 { id: 'assaysummary', title: 'Summary', url: '/summary/?type=Experiment' },
                 { id: 'sep-mm-1' },
-                { id: 'region-search', title: 'Regulome search', url: '/regulome-search/' },
+                { id: 'region-search', title: 'Regulome search', url: '/region-search/' },
                 { id: 'reference-epigenomes', title: 'Reference epigenomes', url: '/search/?type=ReferenceEpigenome' },
                 { id: 'publications', title: 'Publications', url: '/publications/' },
             ],
