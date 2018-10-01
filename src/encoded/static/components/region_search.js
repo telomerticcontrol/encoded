@@ -306,7 +306,7 @@ class AdvSearch extends React.Component {
                                         )}
                                     </select>
                                 </div>
-                                {(context.notification && this.state.searchTerm !== "" && this.state.searchTerm !== undefined) ?
+                                {(context.notification && this.state.searchTerm !== undefined) ?
                                     <p className="input-region-error">{context.notification}</p>
                                 : null}
                             </div>
