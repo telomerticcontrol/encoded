@@ -451,9 +451,7 @@ class RegulomeSearch extends React.Component {
                             </div>
                         </div>
                     </div>
-                : null}
-
-                <DataTypes />
+                : <DataTypes />}
 
             </div>
         );
@@ -474,4 +472,5 @@ RegulomeSearch.contextTypes = {
     navigate: PropTypes.func,
 };
 
-globals.contentViews.register(RegulomeSearch, 'region-search');
+globals.contentViews.register(RegulomeSearch, 'regulome-search');
+// globals.contentViews.register(RegulomeSearch, 'region-search');
