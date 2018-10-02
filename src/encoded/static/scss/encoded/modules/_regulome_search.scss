@@ -9,7 +9,11 @@ body {
     .nav {
         li {
             button {
-                padding-top: 12px;
+                padding-top: 14px;
+            }
+            &:hover {
+                cursor: pointer;
+                background: darken($regulomeGreen,10%);
             }
         }
     }
@@ -33,10 +37,49 @@ body {
 }
 
 .navbar-brand {
-    width: 100px;
+    width: 120px;
     img {
         max-width: 100%;
     }
+}
+
+.navbar-nav-right {
+    float: right;
+    li {
+        a {
+            font-size: 18px;
+            padding-top: 15px;
+            color: white !important;
+        }
+        &:hover {
+            text-decoration: none;
+            background: darken($regulomeGreen,10%);
+        }
+    }
+}
+
+.panel-body {
+    padding: 20px;
+}
+
+.adv-search-form {
+    label {
+        font-family: 'Khula', sans-serif !important;
+        font-size: 1.3rem;
+        padding: 5px 5px 0;
+    }
+    #annotation {
+        font-style: italic;
+        padding: 10px;
+        border-radius: 5px;
+    }
+}
+
+.btn {
+    font-family: 'Khula', sans-serif !important;
+    font-size: 16px;
+    font-weight: normal !important;
+    padding: 5px 10px 3px;
 }
 
 .button-container {
@@ -65,12 +108,19 @@ body {
 }
 
 .data-types {
-    padding-bottom: 20px;
+    cursor: pointer;
     // border-bottom: solid $regulomeGray 1px;
 }
 .about-regulome {
     h4 {
-        padding-top: 20px;
+        padding-top: 10px;
+    }
+}
+
+.data-type-explanation {
+    display: none;
+    &.show {
+        display: block;
     }
 }
 

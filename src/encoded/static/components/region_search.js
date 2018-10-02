@@ -157,34 +157,51 @@ class Intro extends React.Component {
 
 class DataTypes extends React.Component {
 
-    // constructor() {
-    //     super();
-    //
-    //     // Bind this to non-React methods.
-    //     this.handleClick = this.handleClick.bind(this);
-    // }
-    //
-    // handleClick() {
-    //     const { term, name } = this.props;
-    //     this.props.handleClick(term.text, term._source.payload.id, name);
-    // }
+    constructor() {
+        super();
+
+        // Bind this to non-React methods.
+        this.handleInfo = this.handleInfo.bind(this);
+    }
+
+    handleInfo(e) {
+        let infoId = e.target.id.split("data-type-")[1];
+        if (infoId){
+            let infoElement = document.getElementById("data-explanation-"+infoId);
+            infoElement.classList.toggle("show");
+            // $(e.target.id).find("i").toggleClass("icon-caret-down icon-caret-right");
+            let iconElement = e.target.getElementsByTagName("i")[0];
+            if (e.target.getElementsByTagName("i")[0].className.indexOf("icon-caret-right") > -1){
+                iconElement.classList.add("icon-caret-down");
+                iconElement.classList.remove("icon-caret-right");
+            } else {
+                iconElement.classList.remove("icon-caret-down");
+                iconElement.classList.add("icon-caret-right");
+            }
+
+        }
+    }
 
     render () {
         return(
             <div className="data-types">
                 <div className="data-types-instructions"><h4>Use RegulomeDB to identify DNA features and regulatory elements in non-coding regions of the human genome by entering ...</h4></div>
-                <div className="data-types-block">
-                    <h4>&#8250; dbSNP IDs</h4>
-                    <p>Enter dbSNP ID(s) (example) or upload a list of dbSNP IDs to identify DNA features and regulatory elements that contain the coordinate of the SNP(s).</p>
-                    <h4>&#8250; Single nucleotides</h4>
-                    <p>Enter hg19 coordinates for a single nucleotide as 0-based (example) coordinates or in a BED file (example), VCF file (example), or GFF3 file (example). These coordinates will be mapped to a dbSNP IDs (if available) in addition to identifying DNA features and regulatory elements that contain the input coordinate(s).</p>
-                    <h4>&#8250; A chromosomal region</h4>
-                    <p>Enter hg19 chromosomal regions, such as a promoter region upstream of a gene, as 0-based (example) coordinates or in a BED file (example) or GFF3 file (example). All dbSNP IDs with an allele frequency >1% that are found in this region will be used to identify DNA features and regulatory elements that contain the coordinate of the SNP(s).</p>
+                <div className="data-types-block" onClick={this.handleInfo}>
+                    <h4 id="data-type-0"><i className="icon icon-caret-right" /> dbSNP IDs</h4>
+                    <p className="data-type-explanation" id="data-explanation-0">Enter dbSNP ID(s) (example) or upload a list of dbSNP IDs to identify DNA features and regulatory elements that contain the coordinate of the SNP(s).</p>
+                    <h4 id="data-type-1"><i className="icon icon-caret-right" /> Single nucleotides</h4>
+                    <p className="data-type-explanation" id="data-explanation-1">Enter hg19 coordinates for a single nucleotide as 0-based (example) coordinates or in a BED file (example), VCF file (example), or GFF3 file (example). These coordinates will be mapped to a dbSNP IDs (if available) in addition to identifying DNA features and regulatory elements that contain the input coordinate(s).</p>
+                    <h4 id="data-type-2"><i className="icon icon-caret-right" /> A chromosomal region</h4>
+                    <p className="data-type-explanation" id="data-explanation-2">Enter hg19 chromosomal regions, such as a promoter region upstream of a gene, as 0-based (example) coordinates or in a BED file (example) or GFF3 file (example). All dbSNP IDs with an allele frequency >1% that are found in this region will be used to identify DNA features and regulatory elements that contain the coordinate of the SNP(s).</p>
                 </div>
             </div>
         )
     }
 }
+
+DataTypes.propTypes = {
+    handleInfo: PropTypes.func,
+};
 
 
 class AdvSearch extends React.Component {
@@ -290,7 +307,7 @@ class AdvSearch extends React.Component {
                     <form id="panel1" className="adv-search-form" autoComplete="off" aria-labelledby="tab1" onSubmit={this.closeAutocompleteBox} >
                         <input type="hidden" name="annotation" value={this.state.terms.annotation} />
                         <div className="form-group">
-                            <label htmlFor="annotation">Enter any one of human Gene name, Symbol, Synonyms, Gene ID, HGNC ID, coordinates, rsid, Ensemble ID</label>
+                            <label htmlFor="annotation">Search dbSNP IDs, 0-based coordinates, BED files, VCF files, or GFF3 files (hg19)</label>
                             <div className="input-group input-group-region-input">
                                 <input id="annotation" ref={(input) => { this.annotation = input; }} defaultValue={region} name="region" type="text" className="form-control" onChange={this.handleChange} placeholder="Enter search parameters here."/>
                                 {(this.state.showAutoSuggest && this.state.searchTerm) ?
@@ -306,7 +323,7 @@ class AdvSearch extends React.Component {
                                         )}
                                     </select>
                                 </div>
-                                {(context.notification && this.state.searchTerm !== undefined) ?
+                                {(context.notification && this.state.searchTerm !== "" && this.state.searchTerm !== undefined) ?
                                     <p className="input-region-error">{context.notification}</p>
                                 : null}
                             </div>
@@ -389,7 +406,6 @@ class RegulomeSearch extends React.Component {
         return (
             <div>
                 <div className="lead-logo"><img src="/static/img/RegulomeLogoFinal.gif"></img></div>
-                <Intro />
 
                 <AdvSearch {...this.props} />
                 {notification.startsWith('Success') ?
@@ -451,7 +467,8 @@ class RegulomeSearch extends React.Component {
                             </div>
                         </div>
                     </div>
-                : <DataTypes />}
+                : null}
+                <DataTypes />
 
             </div>
         );
@@ -472,5 +489,5 @@ RegulomeSearch.contextTypes = {
     navigate: PropTypes.func,
 };
 
-// globals.contentViews.register(RegulomeSearch, 'regulome-search');
-globals.contentViews.register(RegulomeSearch, 'region-search');
+globals.contentViews.register(RegulomeSearch, 'regulome-search');
+// globals.contentViews.register(RegulomeSearch, 'region-search');
