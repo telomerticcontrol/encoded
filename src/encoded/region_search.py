@@ -11,6 +11,7 @@ from .search import (
     set_filters,
     set_facets,
     get_filtered_query,
+    get_pagination,
     format_facets,
     search_result_actions
 )
@@ -282,7 +283,108 @@ def update_viusalize(result, assembly, dataset_paths, file_statuses):
     return {assembly: vis_assembly}
 
 
+def get_coordinate(query_term, assembly, atlas):
+    query_term = query_term.lower()
+    if query_term.startswith('chr'):
+        chrom, start, end = sanitize_coordinates(query_term)
+    elif query_term.startswith('ens'):
+        chrom, start, end = get_ensemblid_coordinates(query_term, assembly)
+    elif query_term.startswith('rs'):
+        rsid = sanitize_rsid(query_term)
+        chrom, start, end = get_rsid_coordinates(rsid, assembly, atlas)
+    if not chrom or not start or not end:
+        return None, None, None
+    else:
+        chrom = 'chr' + ''.join(filter(str.isdigit, chrom))
+        if int(start) > int(end):
+            return chrom, int(end), int(start)
+        else:
+            return chrom, int(start), int(end)
+
+
+def get_rsids(atlas, assembly, chrom, start, end):
+    pos = (int(start) + int(end)) / 2
+    window = int(end) - int(start)
+    rsids = atlas.nearby_snps(_GENOME_TO_ALIAS.get(assembly, 'hg19'),
+                              chrom, pos, window=window, max_snps=99999)
+    return [rsid['rsid'] for rsid in rsids if 'rsid' in rsid]
+
+
 @view_config(route_name='regulome-search', request_method='GET', permission='search')
+def regulome_search(context, request):
+    """
+    Regulome evidence analysis by region(s).
+    """
+    regions = request.params.getall('region')
+    summary_only = len(regions) > 1
+    # Return reports directly instead of summaryself.
+    # TODO refactor so as to not rely on region_search
+    if not summary_only:
+        return region_search(context, request)
+
+    # TODO this section is coded in a way so that it can be resued (by single
+    # region regulome search) when refactoring in the future
+    begin = time.time()  # DEBUG: timing
+    assembly = request.params.get('genome', 'GRCh37')
+    from_, size = get_pagination(request)
+    if size >= 0 and size < len(regions):
+        regions = regions[:size]
+    regulome_es = request.registry[SNP_SEARCH_ES]
+    atlas = RegulomeAtlas(regulome_es)
+    result = {
+        '@context': request.route_path('jsonld_context'),
+        '@id': '/regulome-search/',
+        '@type': ['regulome-search'],
+        'title': 'Regulome analysis',
+        'assembly': _GENOME_TO_ALIAS.get(assembly, 'hg19'),
+        'summaries': [],
+        'filters': [],
+        'timing': [],
+        'notification': [],
+    }
+    if request.query_string:
+        result['@id'] = '/regulome-search/?{}'.format(
+            request.query_string.split('&referrer')[0]
+        )
+    result['timing'].append({'preamble': (time.time() - begin)})  # DEBUG: timing
+
+    # Loop through region queries and get score
+    # Return summaies (coordinate and score) for multiple regions
+    scored_coord = set()
+    for region_query in regions:
+        begin = time.time()  # DEBUG: timing
+        # Get coordinate and rsid(s) with in the queried region
+        chrom, start, end = get_coordinate(region_query, assembly, atlas)
+        if chrom is None:
+            result['notification'].append({
+                region_query: 'Failed: no valid coordinate'})
+            result['timing'].append({region_query: (time.time() - begin)})  # DEBUG timing
+            continue
+        coord = '{}:{}-{}'.format(chrom, start, end)
+
+        # Skip if scored before
+        if coord in scored_coord:
+            result['notification'].append({coord: 'Skiped: scored before'})
+            result['timing'].append({region_query: (time.time() - begin)})  # DEBUG timing
+            continue
+        else:
+            scored_coord.add(coord)
+
+        summary = {'chrom': chrom, 'start': start, 'end': end}
+        summary['rsids'] = get_rsids(atlas, assembly, chrom, start, end)
+        # Only SNP or single nucleotide are considered as scorable
+        if summary['rsids'] == [] and (int(end) - int(start)) > 1:
+            summary['regulome_score'] = 'N/A'
+            continue
+
+        # Score
+        all_hits = region_get_hits(atlas, assembly, chrom, start, end)
+        summary['regulome_score'] = atlas.regulome_score(all_hits['datasets'])
+        result['summaries'].append(summary)
+        result['timing'].append({region_query: (time.time() - begin)})  # DEBUG timing
+    return result
+
+
 @view_config(route_name='region-search', request_method='GET', permission='search')
 def region_search(context, request):
     """
