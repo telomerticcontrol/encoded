@@ -40,18 +40,13 @@ class ItemComponent extends React.Component {
             <li>
                 <div className="clearfix">
                     <PickerActions {...this.props} />
-                    {result.accession ?
-                        <div className="pull-right type sentence-case search-meta">
-                            <p>{itemType}: {` ${result.accession}`}</p>
-                            {this.props.auditIndicators(result.audit, result['@id'], { session: this.context.session, search: true })}
-                        </div>
-                    : null}
                     <div className="accession">
                         <a href={result['@id']}>{title}</a>
                     </div>
                     <div className="data-row">
                         {result.description}
                     </div>
+                    <div className="data-row">This is a test.</div>
                 </div>
                 {this.props.auditDetail(result.audit, result['@id'], { session: this.context.session, except: result['@id'], forcedEditLink: true })}
             </li>
