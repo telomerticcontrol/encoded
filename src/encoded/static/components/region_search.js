@@ -462,7 +462,7 @@ class RegulomeSearch extends React.Component {
 
                                 <hr />
                                 <ul className="nav result-table" id="result-table">
-                                    {results.map(result => Listing({ context: result, columns, key: result['@id'] }))}
+                                    {results.map(result => List({ context: result, columns, key: result['@id'] }))}
                                 </ul>
                             </div>
                         </div>
