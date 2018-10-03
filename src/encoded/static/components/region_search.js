@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import url from 'url';
 import { BrowserSelector } from './objectutils';
 import { Panel, PanelBody } from '../libs/bootstrap/panel';
-import { FacetList, Listing } from './search';
+import { FacetList } from './search';
+import { List } from './search_table';
+// import { FacetList, Listing } from './search';
 import { FetchedData, Param } from './fetched';
 import * as globals from './globals';
 // import { entryPoint } from '../libs/d3-sequence-logo';
@@ -169,7 +171,6 @@ class DataTypes extends React.Component {
         if (infoId){
             let infoElement = document.getElementById("data-explanation-"+infoId);
             infoElement.classList.toggle("show");
-            // $(e.target.id).find("i").toggleClass("icon-caret-down icon-caret-right");
             let iconElement = e.target.getElementsByTagName("i")[0];
             if (e.target.getElementsByTagName("i")[0].className.indexOf("icon-caret-right") > -1){
                 iconElement.classList.add("icon-caret-down");
@@ -178,7 +179,6 @@ class DataTypes extends React.Component {
                 iconElement.classList.remove("icon-caret-down");
                 iconElement.classList.add("icon-caret-right");
             }
-
         }
     }
 
@@ -467,8 +467,7 @@ class RegulomeSearch extends React.Component {
                             </div>
                         </div>
                     </div>
-                : null}
-                <DataTypes />
+                : <DataTypes />}
 
             </div>
         );
