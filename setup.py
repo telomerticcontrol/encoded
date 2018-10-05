@@ -79,9 +79,9 @@ setup(
     entry_points='''
         [console_scripts]
         batchupgrade = snovault.batchupgrade:main
-        create-mapping = snovault.elasticsearch.create_mapping:main
+        create-mapping = snovault.es_wrapper.create_mapping:main
         dev-servers = snovault.dev_servers:main
-        es-index-listener = snovault.elasticsearch.es_index_listener:main
+        es-index-listener = snovault.es_wrapper.es_index_listener:main
 
         add-date-created = encoded.commands.add_date_created:main
         check-rendering = encoded.commands.check_rendering:main
@@ -104,9 +104,9 @@ setup(
         main = encoded:main
 
         [paste.composite_factory]
-        indexer = snovault.elasticsearch.es_index_listener:composite
-        visindexer = snovault.elasticsearch.es_index_listener:composite
-        regionindexer = snovault.elasticsearch.es_index_listener:composite
+        indexer = snovault.es_wrapper.es_index_listener:composite
+        visindexer = snovault.es_wrapper.es_index_listener:composite
+        regionindexer = snovault.es_wrapper.es_index_listener:composite
 
         [paste.filter_app_factory]
         memlimit = encoded.memlimit:filter_app
