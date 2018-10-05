@@ -10,7 +10,7 @@ from urllib.parse import (
     parse_qs,
     urlencode,
 )
-from snovault.elasticsearch.interfaces import ELASTIC_SEARCH
+from snovault.es_wrapper.interfaces import ELASTIC_SEARCH
 from .vis_defines import (
     ASSEMBLY_TO_UCSC_ID,
     VISIBLE_DATASET_STATUSES,

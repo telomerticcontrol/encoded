@@ -17,16 +17,16 @@ from snovault import DBSESSION, COLLECTIONS
 #from snovault.storage import (
 #    TransactionRecord,
 #)
-from snovault.elasticsearch.indexer import (
+from snovault.es_wrapper.indexer import (
     Indexer
 )
-from snovault.elasticsearch.indexer_state import (
+from snovault.es_wrapper.indexer_state import (
     SEARCH_MAX,
     IndexerState,
     all_uuids
 )
 
-from snovault.elasticsearch.interfaces import (
+from snovault.es_wrapper.interfaces import (
     ELASTIC_SEARCH,
     SNP_SEARCH_ES,
     INDEXER,

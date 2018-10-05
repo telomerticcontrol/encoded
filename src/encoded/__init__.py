@@ -22,7 +22,7 @@ from pyramid.settings import (
 )
 from sqlalchemy import engine_from_config
 from webob.cookies import JSONSerializer
-from snovault.elasticsearch import (
+from snovault.es_wrapper import (
     PyramidJSONSerializer,
     TimedUrllib3HttpConnection,
 )
@@ -202,7 +202,7 @@ def main(global_config, **local_config):
     settings['snovault.elasticsearch.index'] = 'snovault'
 
     config = Configurator(settings=settings)
-    from snovault.elasticsearch import APP_FACTORY
+    from snovault.es_wrapper import APP_FACTORY
     config.registry[APP_FACTORY] = main  # used by mp_indexer
     config.include(app_version)
 
@@ -227,7 +227,7 @@ def main(global_config, **local_config):
     config.include('.visualization')
 
     if 'elasticsearch.server' in config.registry.settings:
-        config.include('snovault.elasticsearch')
+        config.include('snovault.es_wrapper')
         config.include('encoded.viewconfigs.views')
         config.include('.vis_indexer')
 

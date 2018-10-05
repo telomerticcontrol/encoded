@@ -33,7 +33,7 @@ def app(app_settings):
     yield app
 
     # Shutdown multiprocessing pool to close db conns.
-    from snovault.elasticsearch import INDEXER
+    from snovault.es_wrapper import INDEXER
     app.registry[INDEXER].shutdown()
 
     from snovault import DBSESSION
@@ -50,7 +50,7 @@ def DBSession(app):
 
 @pytest.fixture(autouse=True)
 def teardown(app, dbapi_conn):
-    from snovault.elasticsearch import create_mapping
+    from snovault.es_wrapper import create_mapping
     create_mapping.run(app)
     cursor = dbapi_conn.cursor()
     cursor.execute("""TRUNCATE resources, transactions CASCADE;""")
