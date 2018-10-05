@@ -3,7 +3,7 @@ from elasticsearch import RequestError
 import logging
 import json
 
-from snovault.elasticsearch.interfaces import ELASTIC_SEARCH
+from snovault.es_wrapper.interfaces import ELASTIC_SEARCH
 
 
 EPILOG = __doc__

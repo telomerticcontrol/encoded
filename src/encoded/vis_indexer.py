@@ -8,7 +8,7 @@ from pyramid.view import view_config
 from sqlalchemy.exc import StatementError
 
 from urllib3.exceptions import ReadTimeoutError
-from snovault.elasticsearch.interfaces import (
+from snovault.es_wrapper.interfaces import (
     ELASTIC_SEARCH,
     INDEXER,
 )
@@ -20,12 +20,12 @@ import copy
 import json
 import requests
 from pkg_resources import resource_filename
-from snovault.elasticsearch.indexer import (
+from snovault.es_wrapper.indexer import (
     Indexer,
     get_current_xmin
 )
 
-from snovault.elasticsearch.indexer_state import (
+from snovault.es_wrapper.indexer_state import (
     IndexerState,
     all_uuids,
     SEARCH_MAX
