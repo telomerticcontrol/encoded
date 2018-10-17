@@ -1,5 +1,5 @@
 /* global process, __dirname */
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 const webpack = require('webpack');
 
@@ -43,8 +43,7 @@ if (env === 'production') {
     styleFilename = './css/[name].[chunkhash].css';
 }
 
-const loaders = [
-    // add babel to load .js files as ES6 and transpile JSX
+const rules = [
     {
         test: /\.js$/,
         include: [
@@ -53,11 +52,11 @@ const loaders = [
             path.resolve(__dirname, 'node_modules/dalliance'),
             path.resolve(__dirname, 'node_modules/superagent'),
         ],
-        loader: 'babel',
+        use: 'babel',
     },
     {
         test: /\.json$/,
-        loader: 'json',
+        use: 'json',
     },
     {
         test: /\.(jpg|png|gif)$/,
@@ -66,7 +65,18 @@ const loaders = [
     },
     {
         test: /\.scss$/,
-        loader: ExtractTextPlugin.extract('css!sass'),
+        use: [
+            {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                    // you can specify a publicPath here
+                    // by default it use publicPath in webpackOptions.output
+                    publicPath: '../',
+                },
+            },
+            'css-loader',
+            'sass-loader',
+        ],
     },
 ];
 
@@ -74,6 +84,18 @@ module.exports = [
     // for browser
     {
         context: PATHS.static,
+        optimization: {
+            splitChunks: {
+                cacheGroups: {
+                    styles: {
+                        name: 'styles',
+                        test: /\.css$/,
+                        chunks: 'all',
+                        enforce: true,
+                    },
+                },
+            },
+        },
         entry: {
             inline: './inline',
             style: './scss/style.scss',
@@ -85,15 +107,17 @@ module.exports = [
             chunkFilename,
         },
         module: {
-            loaders,
+            rules,
         },
         devtool: 'source-map',
         plugins: plugins.concat(
             // Add a browser-only plugin to extract Sass-compiled styles and place them into an
             // external CSS file
-            new ExtractTextPlugin(styleFilename, {
-                disable: false,
-                allChunks: true,
+            new MiniCssExtractPlugin({
+                // Options similar to the same options in webpackOptions.output
+                // both options are optional
+                filename: env === 'production' ? '[name].[hash].css' : '[name].css',
+                chunkFilename: env === 'production' ? '[id].[hash].css' : '[id].css',
             }),
 
             // Add a browser-only plugin executed when webpack is done with all transforms. it
