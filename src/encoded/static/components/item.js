@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import url from 'url';
-import Table from './collection';
 import { FetchedData, Param } from './fetched';
 import { JSONSchemaForm } from './form';
 import * as globals from './globals';
@@ -201,14 +200,13 @@ const FetchedRelatedItems = (props) => {
 };
 
 FetchedRelatedItems.propTypes = {
-    Component: PropTypes.any,
+    Component: PropTypes.any.isRequired,
     context: PropTypes.object,
     title: PropTypes.string,
     itemUrl: PropTypes.string,
 };
 
 FetchedRelatedItems.defaultProps = {
-    Component: Table,
     context: null,
     title: '',
     itemUrl: '',

@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Table from '../collection';
 import { FetchedData, Param } from '../fetched';
 import * as globals from '../globals';
 import { ResultTable, Listing } from '../search';
@@ -68,11 +67,10 @@ class SearchBlock extends React.Component {
         }
 
         const url = `/search/${this.props.value.search || ''}`;
-        const Component = this.props.value.display === 'table' ? Table : SearchResultsLayout;
         return (
             <FetchedData>
                 <Param name="context" url={url} />
-                <Component href={url} />
+                <SearchResultsLayout href={url} />
             </FetchedData>
         );
     }

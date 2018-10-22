@@ -4,7 +4,7 @@ const path = require('path');
 const webpack = require('webpack');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
-const env = process.env.NODE_ENV;
+const env = process.env.NODE_ENV || 'development';
 
 const PATHS = {
     static: path.resolve(__dirname, 'src/encoded/static'),
@@ -24,7 +24,7 @@ plugins.push(new webpack.DefinePlugin({ 'global.GENTLY': false }));
 
 let chunkFilename = '[name].js';
 let styleFilename = './css/[name].css';
-let minimizer = {};
+let minimizer = [];
 
 if (env === 'production') {
     // Set production version of React
@@ -51,32 +51,29 @@ const rules = [
             PATHS.static,
             path.resolve(__dirname, 'node_modules/dagre-d3'),
             path.resolve(__dirname, 'node_modules/dalliance'),
-            path.resolve(__dirname, 'node_modules/superagent'),
         ],
-        use: 'babel-loader',
+        use: {
+            loader: 'babel-loader',
+        },
     },
     {
         test: /\.json$/,
-        use: 'json-loader',
-    },
-    {
-        test: /\.(jpg|png|gif)$/,
-        loader: 'url?limit=25000',
-        include: PATHS.images,
+        use: {
+            loader: 'json-loader',
+        },
     },
     {
         test: /\.scss$/,
         use: [
+            MiniCssExtractPlugin.loader,
             {
-                loader: MiniCssExtractPlugin.loader,
-                options: {
-                    // you can specify a publicPath here
-                    // by default it use publicPath in webpackOptions.output
-                    publicPath: '../',
-                },
+                loader: 'css-loader',
+                options: { url: false, sourceMap: true },
             },
-            'css-loader',
-            'sass-loader',
+            {
+                loader: 'sass-loader',
+                options: { sourceMap: true },
+            },
         ],
     },
 ];
@@ -134,9 +131,11 @@ module.exports = [
                 });
             }
         ),
+        mode: env,
     },
     // for server-side rendering
     {
+        context: PATHS.static,
         entry: {
             renderer: './server.js',
         },
@@ -168,5 +167,6 @@ module.exports = [
         },
         devtool: 'source-map',
         plugins,
+        mode: env,
     },
 ];
