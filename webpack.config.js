@@ -2,6 +2,7 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 const webpack = require('webpack');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 const env = process.env.NODE_ENV;
 
@@ -15,7 +16,7 @@ const PATHS = {
 
 const plugins = [];
 // don't include momentjs locales (large)
-plugins.push(new webpack.IgnorePlugin(/^\.\/locale$/, [/moment$/]));
+plugins.push(new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/));
 
 // To get auth0 v11 to build correctly:
 // https://github.com/felixge/node-formidable/issues/337#issuecomment-183388869
@@ -23,11 +24,9 @@ plugins.push(new webpack.DefinePlugin({ 'global.GENTLY': false }));
 
 let chunkFilename = '[name].js';
 let styleFilename = './css/[name].css';
+let minimizer = {};
 
 if (env === 'production') {
-    // uglify code for production
-    plugins.push(new webpack.optimize.UglifyJsPlugin({ minimize: true }));
-
     // Set production version of React
     // https://stackoverflow.com/questions/37311972/react-doesnt-switch-to-production-mode#answer-37311994
     plugins.push(
@@ -41,6 +40,8 @@ if (env === 'production') {
     // add chunkhash to chunk names for production only (it's slower)
     chunkFilename = '[name].[chunkhash].js';
     styleFilename = './css/[name].[chunkhash].css';
+
+    minimizer = [new UglifyJsPlugin()];
 }
 
 const rules = [
@@ -52,11 +53,11 @@ const rules = [
             path.resolve(__dirname, 'node_modules/dalliance'),
             path.resolve(__dirname, 'node_modules/superagent'),
         ],
-        use: 'babel',
+        use: 'babel-loader',
     },
     {
         test: /\.json$/,
-        use: 'json',
+        use: 'json-loader',
     },
     {
         test: /\.(jpg|png|gif)$/,
@@ -95,9 +96,10 @@ module.exports = [
                     },
                 },
             },
+            minimizer,
         },
         entry: {
-            inline: './inline',
+            inline: './inline.js',
             style: './scss/style.scss',
         },
         output: {
@@ -132,12 +134,11 @@ module.exports = [
                 });
             }
         ),
-        debug: true,
     },
     // for server-side rendering
     {
         entry: {
-            renderer: './src/encoded/static/server.js',
+            renderer: './server.js',
         },
         target: 'node',
         // make sure compiled modules can use original __dirname
@@ -163,10 +164,9 @@ module.exports = [
             chunkFilename,
         },
         module: {
-            loaders,
+            rules,
         },
         devtool: 'source-map',
         plugins,
-        debug: true,
     },
 ];
