@@ -5,6 +5,8 @@ from elasticsearch.exceptions import (
     TransportError,
 )
 from pyramid.view import view_config
+from pyramid.settings import asbool
+
 from sqlalchemy.exc import StatementError
 
 from urllib3.exceptions import ReadTimeoutError
@@ -44,7 +46,11 @@ def includeme(config):
     config.add_route('_visindexer_state', '/_visindexer_state')
     config.scan(__name__)
     registry = config.registry
-    registry['vis'+INDEXER] = VisIndexer(registry)
+    indexer_settings = {
+        'index': registry.settings['snovault.elasticsearch.index'],
+        'do_log': asbool(registry.settings.get('index_do_log', False)),
+    }
+    registry['vis'+INDEXER] = VisIndexer(registry, indexer_settings)
 
 class VisIndexerState(IndexerState):
     # Accepts handoff of uuids from primary indexer. Keeps track of uuids and vis_indexer state by cycle.
@@ -241,8 +247,8 @@ def all_visualizable_uuids(registry):
 
 
 class VisIndexer(PrimaryIndexer):
-    def __init__(self, registry):
-        super(VisIndexer, self).__init__(registry)
+    def __init__(self, registry, settings):
+        super(VisIndexer, self).__init__(registry, settings)
         self.state = VisIndexerState(self.registry_es, self.index)  # WARNING, race condition is avoided because there is only one worker
 
     def get_from_es(request, comp_id):

@@ -7,7 +7,10 @@ import collections
 import json
 import requests
 import os
+
 from pyramid.view import view_config
+from pyramid.settings import asbool
+
 from sqlalchemy.sql import text
 from elasticsearch.exceptions import (
     NotFoundError
@@ -79,7 +82,11 @@ def includeme(config):
     config.scan(__name__)
     config.add_route('_regionindexer_state', '/_regionindexer_state')
     registry = config.registry
-    registry['region'+INDEXER] = RegionIndexer(registry)
+    indexer_settings = {
+        'index': registry.settings['snovault.elasticsearch.index'],
+        'do_log': asbool(registry.settings.get('index_do_log', False)),
+    }
+    registry['region'+INDEXER] = RegionIndexer(registry, indexer_settings)
 
 def tsvreader(file):
     reader = csv.reader(file, delimiter='\t')
@@ -374,10 +381,10 @@ def index_regions(request):
 
 
 class RegionIndexer(PrimaryIndexer):
-    def __init__(self, registry):
-        super(RegionIndexer, self).__init__(registry)
+    def __init__(self, registry, settings):
+        super(RegionIndexer, self).__init__(registry, settings)
         self.encoded_es    = registry[ELASTIC_SEARCH]    # yes this is self.es but we want clarity
-        self.encoded_INDEX = registry.settings['snovault.elasticsearch.index']  # yes this is self.index, but clarity
+        self.encoded_INDEX = settings['index']  # yes this is self.index, but clarity
         self.regions_es    = registry[SNP_SEARCH_ES]
         self.residents_index = RESIDENT_REGIONSET_KEY
         self.state = RegionIndexerState(self.encoded_es,self.encoded_INDEX)  # WARNING, race condition is avoided because there is only one worker
