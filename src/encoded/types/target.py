@@ -40,7 +40,7 @@ class Target(SharedItem):
         if target_organism:
             return target_organism
         organisms = {
-            request.embed(gene)
+            request.embed(gene)['organism']
             for gene in genes
         }
         if len(organisms) != 1:
