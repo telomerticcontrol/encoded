@@ -17,7 +17,7 @@ from snovault.validation import ValidationFailure
     unique_key='target:name',
     properties={
         'title': 'Targets',
-        'description': 'Listing of ENCODE3 targets',
+        'description': 'Listing of ENCODE targets',
     })
 class Target(SharedItem):
     item_type = 'target'
