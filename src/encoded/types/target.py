@@ -26,7 +26,7 @@ class Target(SharedItem):
 
     def unique_keys(self, properties):
         keys = super(Target, self).unique_keys(properties)
-        keys.setdefault('target:name', []).append(self._name(properties))
+        keys.setdefault('target:name', []).append(self.__name__())
         return keys
 
     @calculated_property(schema={
