@@ -36,23 +36,19 @@ class Target(SharedItem):
         "type": "string",
         "linkTo": "Organism"
     })
-    def organism(self, properties=None):
-        if properties is None:
-            properties = self.upgrade_properties()
-        if 'target_organism' in properties:
-            return properties['target_organism']
-        else:
-            root = find_root(self)
-            organism_uuids = set(
-                root.get_by_uuid(gene).upgrade_properties()['organism']
-                for gene in properties['genes']
+    def organism(self, request, genes, target_organism=None):
+        if target_organism:
+            return target_organism
+        organisms = {
+            request.embed(gene)
+            for gene in genes
+        }
+        if len(organisms) != 1:
+            msg = 'Target genes are from different organisms: {}'.format(
+                organisms
             )
-            if len(organism_uuids) != 1:
-                msg = 'Target genes are from different organisms: {}'.format(
-                    repr(organism_uuids)
-                )
-                raise ValidationFailure('body', ['genes'], msg)
-            return organism_uuids.pop()
+            raise ValidationFailure('body', ['genes'], msg)
+        return next(iter(organisms))
 
     @calculated_property(schema={
         "title": "Name",
@@ -65,25 +61,21 @@ class Target(SharedItem):
         "title": "Title",
         "type": "string",
     })
-    def title(self, request, label):
-        organism = self.organism()
+    def title(self, request, label, organism):
         organism_props = request.embed(organism, '@@object')
-        return u'{} ({})'.format(label, organism_props['scientific_name'])
+        return '{} ({})'.format(label, organism_props['scientific_name'])
 
     @property
-    def __name__(self):
+    def __name__(self, request):
         properties = self.upgrade_properties()
-        return self._name(properties)
-
-    def _name(self, properties):
-        root = find_root(self)
-        organism = root.get_by_uuid(self.organism(properties))
-        organism_props = organism.upgrade_properties()
-        return u'{}-{}'.format(properties['label'], organism_props['name'])
+        organism = request.embed(properties['organism'])
+        return '{}-{}'.format(properties['label'], organism['name'])
 
     def __resource_url__(self, request, info):
         request._linked_uuids.add(str(self.uuid))
         # Record organism uuid in linked_uuids so linking objects record
         # the rename dependency.
-        request._linked_uuids.add(str(self.organism()))
+        properties = self.upgrade_properties()
+        organism = request.embed(properties['organism'])
+        request._linked_uuids.add(organism['uuid'])
         return None
