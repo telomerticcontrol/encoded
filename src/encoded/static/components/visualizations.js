@@ -4,8 +4,6 @@ import _ from 'underscore';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../libs/bootstrap/modal';
 import * as globals from './globals';
 import url from 'url';
-import { scaleLinear, scaleBand } from 'd3-scale';
-import { select } from 'd3-selection';
 
 
 // Display information on page as JSON formatted data
@@ -75,7 +73,7 @@ export class TestViz extends React.Component {
 
         const d3 = this.d3;
 
-        let displayCategories = ["assay_term_name", "annotation_type", "organ_slims", "biosample_term_name", "target.label"];
+        let displayCategories = ["assay_term_name", "organ_slims", "biosample_term_name", "target.label"];
 
         let facets = this.props.context.facets;
 
@@ -98,7 +96,7 @@ export class TestViz extends React.Component {
         });
 
         let maxWidth = 0;
-        let screenWidth = document.getElementsByClassName("chart-display")[0].offsetWidth;
+        let screenWidth = document.getElementsByClassName("chart-display")[0].offsetWidth - 43;
         if (screenWidth > 500) {
             maxWidth = Math.floor(screenWidth / chosenIDX.length);
         } else {
@@ -137,7 +135,7 @@ export class TestViz extends React.Component {
         function drawOneChart(svgBars, chartData, maxWidth, fillColor, xAxisLabel, yAxisLabel, maxY){
 
             // create SVG container for chart components
-            let margin = {top: 40, bottom: 150, right: 20, left: 30};
+            let margin = {top: 40, bottom: 170, right: 20, left: 30};
             let height = 310;
             let width = maxWidth;
 

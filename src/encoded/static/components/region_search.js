@@ -487,7 +487,7 @@ class RegulomeSearch extends React.Component {
         const searchBase = url.parse(this.context.location_href).search || '';
         const trimmedSearchBase = searchBase.replace(/[?|&]limit=all/, '');
         const filters = context.filters;
-        const facets = context.facets;
+        const facetsOriginal = context.facets;
         const total = context.total;
         const visualizeDisabled = total > visualizeLimit;
 
@@ -496,6 +496,18 @@ class RegulomeSearch extends React.Component {
         let browserDatasets = []; // Datasets will be used to get vis_json blobs
         let browserFiles = []; // Files to pass to ResultsBrowser component
         let assemblyChooser;
+        let facets = [];
+
+        // construct searchable facets object for report pages
+        if (facetsOriginal[0]){
+            // eliminate facets that we do not want to enable search for
+            facets = facetsOriginal.filter( facet => (facet.field !== 'files.file_type' && facet.field !=='status' && facet.field !== 'replicates.library.biosample.donor.organism.scientific_name' && facet.field !== 'assembly' && facet.field !== 'annotation_type'));
+            // combine "annotation_type" and "assay"
+            if (facets[0].terms.length !== (facetsOriginal[0].terms.length + facetsOriginal[1].terms.length)){
+                facets[0].terms = [];
+                facets[0].terms = [...facetsOriginal[0].terms, ...facetsOriginal[1].terms];
+            }
+        }
 
         let visualizeCfg = context.visualize_batch;
 
@@ -630,7 +642,7 @@ class RegulomeSearch extends React.Component {
 
                                         {visualizeKeys && context.visualize_batch && !visualizeDisabled ?
                                             <div className="visualize-block">
-                                                <h4>Biodalliance</h4>
+                                                <h4>Visualize</h4>
                                                 {visualizeCfg['hg19']['UCSC'] ?
                                                     <div>
                                                         <div className="visualize-element"><a href={visualizeCfg['hg19']['Quick View']} rel="noopener noreferrer" target="_blank">Quick View
@@ -644,7 +656,7 @@ class RegulomeSearch extends React.Component {
                                             </div>
                                         :
                                             <div className="visualize-block">
-                                                <h4>Biodalliance</h4>
+                                                <h4>Visualize</h4>
                                                 <div className="visualize-element visualize-error">Filter to fewer than 100 results to visualize</div>
                                             </div>
                                         }
