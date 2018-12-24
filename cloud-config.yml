@@ -8,8 +8,8 @@ ssh_authorized_keys:
     # - cloud-init-per once chmod-swapfile chmod 600 /swapfile
     # - cloud-init-per once mkswap-swapfile mkswap /swapfile
   #package_upgrade: true
-  packages:
-  - awscli
+packages:
+- awscli
   #- apache2-mpm-worker
   #- bsdtar
   #- build-essential
@@ -50,9 +50,9 @@ ssh_authorized_keys:
   #  mode: reboot
   #output:
   #  all: '| tee -a /var/log/cloud-init-output.log'
-  runcmd:
-  - sudo -u ubuntu mv /home/ubuntu/.ssh/authorized_keys /home/ubuntu/.ssh/authorized_keys2
-  - sudo -u ubuntu aws s3 cp --region=us-west-2 %(S3_AUTH_KEYS)s /home/ubuntu/.ssh/authorized_keys
+runcmd:
+- sudo -u ubuntu cp /home/ubuntu/.ssh/authorized_keys /home/ubuntu/.ssh/authorized_keys2
+  # - sudo -u ubuntu aws s3 cp --region=us-west-2 %(S3_AUTH_KEYS)s /home/ubuntu/.ssh/authorized_keys
   #- MEMGIGS=$(awk '/MemTotal/{printf "%%.0f", $2 / 1024**2}' /proc/meminfo)
   #- if [ "$MEMGIGS" -gt 32 ]
   #- then
