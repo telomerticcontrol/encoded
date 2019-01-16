@@ -107,6 +107,7 @@ write_files:
 - path: "/etc/profile"
   content: |
     export JAVA_HOME="/usr/lib/jvm/jdk-11.0.2/bin/java"
+    export PATH="$PATH/usr/lib/jvm/jdk-11.0.2/bin"
 - path: /etc/apt/apt.conf.d/20auto-upgrades
   content: |
     APT::Periodic::Update-Package-Lists "1";
