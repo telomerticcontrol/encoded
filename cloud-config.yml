@@ -104,6 +104,9 @@ users:
   system: true
   homedir: /srv/encoded
 write_files:
+- path: "/etc/profile.env"
+  content: |
+    export JAVA_HOME="/usr/lib/jvm/jdk-11.0.2/bin/java"
 - path: /etc/apt/apt.conf.d/20auto-upgrades
   content: |
     APT::Periodic::Update-Package-Lists "1";
