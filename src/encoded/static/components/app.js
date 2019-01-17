@@ -346,6 +346,15 @@ class App extends React.Component {
             window.onhashchange = this.onHashChange;
         }
         window.onbeforeunload = this.handleBeforeUnload;
+        (function walkmeinit() {
+            const walkme = document.createElement('script');
+            walkme.type = 'text/javascript';
+            walkme.async = true;
+            walkme.src = 'https://cdn.walkme.com/users/9ef280c844f94f18bb13787ca49bbdfd/test/walkme_9ef280c844f94f18bb13787ca49bbdfd_https.js';
+            const s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(walkme, s);
+            window._walkmeConfig = { smartLoad: true };
+        }());
     }
 
     shouldComponentUpdate(nextProps, nextState) {
@@ -1077,7 +1086,6 @@ class App extends React.Component {
                     {this.props.inline ? <script data-prop-name="inline" dangerouslySetInnerHTML={{ __html: this.props.inline }} /> : null}
                     {this.props.styles ? <link rel="stylesheet" href={this.props.styles} /> : null}
                     {newsHead(this.props, `${hrefUrl.protocol}//${hrefUrl.host}`)}
-                    <script type="text/javascript">(function() {var walkme = document.createElement('script'); walkme.type = 'text/javascript'; walkme.async = true; walkme.src = 'https://cdn.walkme.com/users/9ef280c844f94f18bb13787ca49bbdfd/test/walkme_9ef280c844f94f18bb13787ca49bbdfd_https.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(walkme, s); window._walkmeConfig = {smartLoad:true}; })();</script>
                 </head>
                 <body onClick={this.handleClick} onSubmit={this.handleSubmit}>
                     <script
