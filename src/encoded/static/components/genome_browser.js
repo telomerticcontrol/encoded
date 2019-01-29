@@ -23,24 +23,24 @@ const dummyFiles = [
         accession: 'ENCFF541XFO',
         href: '/files/ENCFF541XFO/@@download/ENCFF541XFO.bigWig',
     },
-    {
-        file_format: 'bigBed',
-        output_type: 'transcription start sites',
-        accession: 'ENCFF517WSY',
-        href: '/files/ENCFF517WSY/@@download/ENCFF517WSY.bigBed',
-    },
-    {
-        file_format: 'bigBed',
-        output_type: 'peaks',
-        accession: 'ENCFF026DAN',
-        href: '/files/ENCFF026DAN/@@download/ENCFF026DAN.bigBed',
-    },
-    {
-        file_format: 'bigBed',
-        output_type: 'peaks',
-        accession: 'ENCFF847CBY',
-        href: '/files/ENCFF847CBY/@@download/ENCFF847CBY.bigBed',
-    },
+    // {
+    //     file_format: 'bigBed',
+    //     output_type: 'transcription start sites',
+    //     accession: 'ENCFF517WSY',
+    //     href: '/files/ENCFF517WSY/@@download/ENCFF517WSY.bigBed',
+    // },
+    // {
+    //     file_format: 'bigBed',
+    //     output_type: 'peaks',
+    //     accession: 'ENCFF026DAN',
+    //     href: '/files/ENCFF026DAN/@@download/ENCFF026DAN.bigBed',
+    // },
+    // {
+    //     file_format: 'bigBed',
+    //     output_type: 'peaks',
+    //     accession: 'ENCFF847CBY',
+    //     href: '/files/ENCFF847CBY/@@download/ENCFF847CBY.bigBed',
+    // },
 ];
 
 
@@ -371,15 +371,45 @@ function rAssemblyToSources(assembly, region) {
 
 
 class GenomeBrowser extends React.Component {
-    constructor() {
-        super();
+    constructor(props, context) {
+        super(props, context);
+        
+        this.state = {
+            width: 592,
+            height: 1000,
+            trackList: [],
+        };
+        
+        this.drawTracks = this.drawTracks.bind(this);
+        this.drawTracksResized = this.drawTracksResized.bind(this);
 
-        // Bind this to non-React methods.
-        this.locationChange = this.locationChange.bind(this);
-        this.makeTrackLabel = this.makeTrackLabel.bind(this);
     }
-
-    componentDidMount() {
+    
+    drawTracks(container) {
+        let visualizer = new GenomeVisualizer({tracks: this.state.trackList});
+        
+        console.log(this.state.trackList);
+        visualizer.render({
+            width: this.state.width,
+            height: this.state.height
+        }, container);
+    }
+    
+    drawTracksResized() {
+        console.log("resize");
+        
+        this.setState({
+            width: this.chartdisplay.clientWidth,
+            height: this.chartdisplay.clientHeight
+        });
+        if (this.chartdisplay){
+            const container = this.chartdisplay;
+            this.drawTracks(container);
+        }
+    }
+    
+    componentDidMount(){
+        
         const { assembly, region, limitFiles } = this.props;
         // console.log('DidMount ASSEMBLY: %s', assembly);
 
@@ -388,198 +418,89 @@ class GenomeBrowser extends React.Component {
         let files = this.props.files.filter(file => file.file_format === 'bigWig' || file.file_format === 'bigBed');
         files = files.filter(file => ['released', 'in progress', 'archived'].indexOf(file.status) > -1);
 
-
-        // Make some fake file objects from "test" just to give the genome browser something to
-        // chew on if we're running locally.
-        files = !this.context.localInstance ?
-            (limitFiles ? files.slice(0, maxFilesBrowsed - 1) : files)
-        : dummyFiles;
-
-        const browserCfg = rAssemblyToSources(assembly, region);
-
-        this.browserFiles = [];
+        console.log("is this a variable that we have");
+        console.log(maxFilesBrowsed);
+        console.log(limitFiles);
+        
         let domain = `${window.location.protocol}//${window.location.hostname}`;
         if (domain.includes('localhost')) {
             domain = domainName;
+            // Make some fake file objects from "test" just to give the genome browser something to
+            // chew on if we're running locally.
+            files = dummyFiles;
+        } else {
+            files = limitFiles ? files.slice(0, maxFilesBrowsed - 1) : files;
         }
-        files.forEach((file) => {
-            const trackLabels = this.makeTrackLabel(file);
-            if (file.file_format === 'bigWig') {
-                this.browserFiles.push({
-                    name: trackLabels.shortLabel,
-                    desc: trackLabels.longLabel,
-                    bwgURI: `${domain}${file.href}`,
-                    style: [
-                        {
-                            type: 'default',
-                            style: {
-                                glyph: 'HISTOGRAM',
-                                HEIGHT: 30,
-                                BGCOLOR: 'rgb(166,71,71)',
-                            },
-                        },
-                    ],
+        
+        // let tracks = files.map(file => {
+        //     return domain+file.href;
+        // });
+        
+        let tracks = files.map(file => {
+            let trackObj = {};
+            trackObj['name'] = file.accession;
+            trackObj['type'] = 'signal';
+            trackObj['path'] = domain+file.href;
+            trackObj['heightPx'] = 100;
+            return trackObj;
+        });
+        
+        // let tracks = [
+        //     {
+        //         name: 'DNA',
+        //         type: 'sequence',
+        //         path: 'https://s3-us-west-1.amazonaws.com/valis-file-storage/genome-data/GRCh38.vdna-dir',
+        //     },
+        //     {
+        //         name: 'Genes',
+        //         type: 'annotation',
+        //         compact: true,
+        //         path: 'https://s3-us-west-1.amazonaws.com/valis-file-storage/genome-data/GRCh38.92.vgenes-dir',
+        //     },
+        //     {
+        //         name: 'Cerebellum, DNase',
+        //         type: 'signal',
+        //         path: "https://www.encodeproject.org/files/ENCFF833POA/@@download/ENCFF833POA.bigWig",
+        //         heightPx: 150,
+        //     },
+        // ]
+        
+        console.log(tracks);
+            
+        this.setState({trackList: tracks}, function () {
+            if (this.chartdisplay) {
+                
+                this.setState({
+                    width: this.chartdisplay.clientWidth,
+                }, function(){
+                    this.drawTracks(this.chartdisplay);
+                    window.addEventListener("resize", this.drawTracksResized);
                 });
-            } else if (file.file_format === 'bigBed') {
-                this.browserFiles.push({
-                    name: trackLabels.shortLabel,
-                    desc: trackLabels.longLabel,
-                    bwgURI: `${domain}${file.href}`,
-                    style: [
-                        {
-                            style: {
-                                HEIGHT: 10,
-                            },
-                        },
-                    ],
-                });
+                
             }
         });
-        if (this.browserFiles.length) {
-            browserCfg.sources = browserCfg.sources.concat(this.browserFiles);
-        }
 
-        require.ensure(['dalliance'], (require) => {
-            const Dalliance = require('dalliance').browser;
-
-            this.browser = new Dalliance({
-                maxHeight: 2000,
-                noPersist: false,
-                noPersistView: false,
-                noTrackAdder: true,
-                maxWorkers: 4,
-                noHelp: true,
-                noExport: true,
-                rulerLocation: 'right',
-                chr: browserCfg.chr,
-                viewStart: browserCfg.viewStart,
-                viewEnd: browserCfg.viewEnd,
-                cookieKey: browserCfg.cookieKey,
-                coordSystem: browserCfg.coordSystem,
-                sources: browserCfg.sources,
-                noTitle: true,
-                disablePoweredBy: true,
-            });
-            this.browser.addViewListener(this.locationChange);
-        });
-    }
-
-    componentDidUpdate() {
-        // Remove old tiers
-        if (this.browser && this.browserFiles && this.browserFiles.length) {
-            this.browserFiles.forEach((fileSource) => {
-                this.browser.removeTier({
-                    name: fileSource.name,
-                    desc: fileSource.desc,
-                    bwgURI: fileSource.bwgURI,
-                });
-            });
-        }
-
-        const files = !this.context.localInstance ? this.props.files.slice(0, maxFilesBrowsed - 1) : dummyFiles;
-        if (this.browser && files && files.length) {
-            let domain = `${window.location.protocol}//${window.location.hostname}`;
-            if (domain.includes('localhost')) {
-                domain = domainName;
-            }
-            files.forEach((file) => {
-                const trackLabels = this.makeTrackLabel(file);
-                if (file.file_format === 'bigWig') {
-                    this.browser.addTier({
-                        name: trackLabels.shortLabel,
-                        desc: trackLabels.longLabel,
-                        bwgURI: `${domain}${file.href}`,
-                        style: [
-                            {
-                                type: 'default',
-                                style: {
-                                    glyph: 'HISTOGRAM',
-                                    HEIGHT: 30,
-                                    BGCOLOR: 'rgb(166,71,71)',
-                                },
-                            },
-                        ],
-                    });
-                } else if (file.file_format === 'bigBed') {
-                    this.browser.addTier({
-                        name: trackLabels.shortLabel,
-                        desc: trackLabels.longLabel,
-                        bwgURI: `${domain}${file.href}`,
-                        style: [
-                            {
-                                style: {
-                                    HEIGHT: 10,
-                                },
-                            },
-                        ],
-                    });
-                }
-            });
-        }
-    }
-
-    locationChange(chr, min, max) {
-        const location = `chr${chr}:${min}-${max}`;
-        if (location !== this.props.region) {
-            if (this.props.currentRegion) {
-                this.props.currentRegion(this.props.assembly, location);
-                // console.log('locationChange %s %s', this.props.assembly, this.props.region);
-            }
-        }
-    }
-
-    makeTrackLabel(file) {
-        const datasetAccession = file.dataset.split('/')[2];
-        // Unreleased files are not in visBlob so get default labels
-        const trackLabels = {
-            shortLabel: file.accession,
-            longLabel: `${file.status} ${file.output_type}`,
-        };
-        if (this.props.visBlobs === undefined || this.props.visBlobs === null) {
-            return trackLabels;
-        }
-        Object.keys(this.props.visBlobs).forEach((blobKey) => {
-            if (blobKey.startsWith(datasetAccession)) {
-                const tracks = this.props.visBlobs[blobKey].tracks;
-                const trackCount = tracks ? tracks.length : 0;
-                for (let ix = 0; ix < trackCount; ix += 1) {
-                    if (tracks[ix].name === file.accession) {
-                        trackLabels.shortLabel = tracks[ix].shortLabel;
-                        trackLabels.longLabel = tracks[ix].longLabel;
-                        break;
-                    }
-                }
-            }
-        });
-        return trackLabels;
     }
 
     render() {
         return (
-            <div id="svgHolder" className="trackhub-element" />
+            <div>
+                <div ref={(div) => { this.chartdisplay = div; }} className="valis-browser" />
+            </div>
         );
     }
 }
 
 GenomeBrowser.propTypes = {
-    files: PropTypes.array.isRequired, // Array of files to represent
-    assembly: PropTypes.string.isRequired, // Assembly to use with browser
-    region: PropTypes.string, // Region to use with browser
-    visBlobs: PropTypes.object, // This should contain one or more vis_blobs for dataset(s)
-    limitFiles: PropTypes.bool, // True to limit # files to maxFilesBrowsed
-    currentRegion: PropTypes.func,
+    height: React.PropTypes.number,
+    width: React.PropTypes.number,
+    trackList: React.PropTypes.array,
 };
 
 GenomeBrowser.defaultProps = {
-    region: '',
-    visBlobs: undefined,
-    limitFiles: false,
-    currentRegion: undefined,
-};
-
-GenomeBrowser.contextTypes = {
-    location_href: PropTypes.string,
-    localInstance: PropTypes.bool,
+    height: 0,
+    width: 0,
+    trackList: [],
 };
 
 export default GenomeBrowser;

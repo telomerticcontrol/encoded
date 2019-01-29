@@ -1076,6 +1076,7 @@ class App extends React.Component {
                     {base ? <base href={base} /> : null}
                     <link rel="canonical" href={canonical} />
                     <script async src="//www.google-analytics.com/analytics.js" />
+                    <script src="https://cdn.jsdelivr.net/gh/VALIS-software/valis-hpgv/dist/valis-hpgv.js" />
                     {this.props.inline ? <script data-prop-name="inline" dangerouslySetInnerHTML={{ __html: this.props.inline }} /> : null}
                     {this.props.styles ? <link rel="stylesheet" href={this.props.styles} /> : null}
                     {newsHead(this.props, `${hrefUrl.protocol}//${hrefUrl.host}`)}

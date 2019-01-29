@@ -1408,7 +1408,7 @@ ResultTable.contextTypes = {
 
 
 const BrowserTabQuickView = function BrowserTabQuickView() {
-    return <div>Quick View <span className="beta-badge">BETA</span></div>;
+    return <div>Valis browser</div>;
 };
 
 
