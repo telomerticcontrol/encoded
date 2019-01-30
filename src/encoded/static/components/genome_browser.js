@@ -437,12 +437,23 @@ class GenomeBrowser extends React.Component {
         // });
         
         let tracks = files.map(file => {
-            let trackObj = {};
-            trackObj['name'] = file.accession;
-            trackObj['type'] = 'signal';
-            trackObj['path'] = domain+file.href;
-            trackObj['heightPx'] = 100;
-            return trackObj;
+            console.log(file);
+            if (file.file_format === "bigWig"){
+                let trackObj = {};
+                trackObj['name'] = file.accession;
+                trackObj['type'] = 'signal';
+                trackObj['path'] = domain+file.href;
+                trackObj['heightPx'] = 50;
+                return trackObj;
+            } else {
+                let trackObj = {};
+                trackObj['name'] = file.accession;
+                trackObj['type'] = 'annotation';
+                trackObj['compact'] = true;
+                trackObj['path'] = domain+file.href;
+                trackObj['heightPx'] = 50;
+                return trackObj;
+            }
         });
         
         // let tracks = [
