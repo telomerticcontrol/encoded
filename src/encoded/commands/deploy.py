@@ -249,7 +249,10 @@ def get_user_data(commit, config_file, data_insert, main_args):
         auth_type=auth_type,
     )
     data_insert['S3_AUTH_KEYS'] = auth_keys_dir
+    data_insert['REDIS_IP'] = main_args.redis_ip
     data_insert['REDIS_PORT'] = main_args.redis_port
+    data_insert['QUEUE_IP'] = main_args.queue_ip
+    data_insert['QUEUE_PORT'] = main_args.queue_port
     user_data = config_template % data_insert
     return user_data
 
@@ -317,9 +320,13 @@ def _get_run_args(main_args, instances_tag_data):
             'GIT_REPO': main_args.git_repo,
             'REDIS_IP': main_args.redis_ip,
             'REDIS_PORT': main_args.redis_port,
+            'QUEUE_IP': main_args.queue_ip,
+            'QUEUE_PORT': main_args.queue_port,
         }
         if main_args.no_es:
             config_file = ':cloud-config-no-es.yml'
+        elif main_args.es_worker:
+            config_file = ':cloud-config-idxwrkr.yml'
         elif main_args.cluster_name:
             config_file = ':cloud-config-cluster.yml'
             data_insert['CLUSTER_NAME'] = main_args.cluster_name
@@ -548,6 +555,8 @@ def parse_args():
     parser.add_argument('--no-es', action='store_true', help="Use non ES cloud condfig")
     parser.add_argument('--redis-ip', default='localhost', help="Redis IP.")
     parser.add_argument('--redis-port', default=6379, help="Redis Port.")
+    parser.add_argument('--queue-ip', default=None, help="Queue IP.")
+    parser.add_argument('--queue-port', default=None, help="Queue Port.")
     parser.add_argument('--set-region-index-to', type=check_region_index,
                         help="Override region index in yaml to 'True' or 'False'")
     parser.add_argument('--spot-instance', action='store_true', help="Launch as spot instance")
@@ -566,6 +575,14 @@ def parse_args():
         help="Set EC2 availabilty zone")
     parser.add_argument('--git-repo', default='https://github.com/ENCODE-DCC/encoded.git',
             help="Git repo to checkout branches: https://github.com/{user|org}/{repo}.git")
+    parser.add_argument('--es-worker', action='store_true',
+        help=' Create ElasticSearch worker')
+    args = parser.parse_args()
+    # Default queue to redis queue
+    if not args.queue_ip:
+        args.queue_ip = args.redis_ip
+    if not args.queue_port:
+        args.queue_port = args.redis_port
     # Set Role
     # - 'demo' role is default for making single or clustered
     # applications for feature building
@@ -575,7 +592,6 @@ def parse_args():
     # This better mimics production but require a command be run after deployment.
     # - 'candidate' role is for production release that potential can
     # connect to produciton data.
-    args = parser.parse_args()
     if not args.role == 'test':
         if args.release_candidate:
             args.role = 'rc'
