@@ -251,6 +251,48 @@
     margin: 0;
 }
 
+.date-selector {
+    select {
+         border-radius: 2px;
+         border: 1px solid #cccccc !important;
+         font-weight: 400;
+         color: inherit !important;
+         margin-right: 2px;
+    }
+}
+
+.date-selector-facet {
+    h5 {
+        margin-bottom: 10px;
+    }
+}
+
+.date-selector-btn {
+    color: rgb(79,104,158);
+    .icon-caret-right {
+        margin-right: 5px;
+    }
+}
+
+.date-arrow {
+    position: absolute;
+    top: 63%;
+    left: 44%;
+    font-size: 12px;
+}
+
+.date-container {
+    display: flex;
+    position: relative;
+    .date-selector-module {
+        flex: 0 0 50%;
+    }
+}
+
+.apply-date-selector {
+    margin: 10px auto;
+}
+
 .typeahead-entry, .general-search-entry {
     padding: 2px;
     display: flex;
