@@ -457,9 +457,7 @@ def batch_download(context, request):
 
         try:
             elements = request.json.get('elements', [])
-            print('batch_download', 'batch_download', 'elements', len(elements))
         except ValueError:
-            print('batch_download', 'batch_download', 'elements', 'ValueError')
             elements = []
         if cart_uuid:
             # metadata.tsv link includes a cart UUID
@@ -487,6 +485,7 @@ def batch_download(context, request):
             host_url=request.host_url,
             search_params=request.matchdict['search_params']
         )
+        print('batch_download', 'batch_download', 'GET', 'metdata link', metadata_link)
         path = '/search/?%s' % urlencode(param_list, True)
         results = request.embed(path, as_user=True)
         experiments = results['@graph']
