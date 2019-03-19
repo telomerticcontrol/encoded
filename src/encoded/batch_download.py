@@ -444,6 +444,7 @@ def batch_download(context, request):
 
     experiments = []
     error_message = None
+    print('batch_download', 'batch_download', 'req method', request.method)
     if request.method == 'POST':
         metadata_link = ''
         cart_uuid = None
@@ -456,7 +457,9 @@ def batch_download(context, request):
 
         try:
             elements = request.json.get('elements', [])
+            print('batch_download', 'batch_download', 'elements', len(elements))
         except ValueError:
+            print('batch_download', 'batch_download', 'elements', 'ValueError')
             elements = []
         if cart_uuid:
             # metadata.tsv link includes a cart UUID
