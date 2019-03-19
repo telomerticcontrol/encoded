@@ -213,6 +213,7 @@ def _get_annotation_metadata(request, search_path, param_list):
         :param search_path: Search url
         :param param_list: Initial param_list
     """
+    print('batch_download', '_get_annotation_metadata')
     header = [header for header in _tsv_mapping_annotation]
     header.extend([prop for prop in _audit_mapping])
     fout = io.StringIO()
@@ -333,6 +334,7 @@ def peak_metadata(context, request):
 
 @view_config(route_name='metadata', request_method='GET')
 def metadata_tsv(context, request):
+    print('batch_download', 'metadata_tsv')
     param_list = parse_qs(request.matchdict['search_params'])
     if 'referrer' in param_list:
         search_path = '/{}/'.format(param_list.pop('referrer')[0])
@@ -434,6 +436,7 @@ def metadata_tsv(context, request):
 
 @view_config(route_name='batch_download', request_method=('GET', 'POST'))
 def batch_download(context, request):
+    print('batch_download', 'batch_download')
     # adding extra params to get required columns
     param_list = parse_qs(request.matchdict['search_params'])
     param_list['field'] = ['files.href', 'files.file_type', 'files.restricted']
