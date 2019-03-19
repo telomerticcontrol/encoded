@@ -493,7 +493,7 @@ def batch_download(context, request):
             for exp in experiments
             for exp_file in exp.get('files', [])
     )
-
+    print('batch_download', 'batch_download', 'exps', len(experiments), 'files', len(exp_files))
     files = [metadata_link]
     for exp_file in exp_files:
         if not file_type_param_list(exp_file, param_list):
