@@ -487,6 +487,7 @@ def batch_download(context, request):
         )
         print('batch_download', 'batch_download', 'GET', 'metdata link', metadata_link)
         path = '/search/?%s' % urlencode(param_list, True)
+        print('batch_download', 'batch_download', 'GET', 'search path', path)
         results = request.embed(path, as_user=True)
         experiments = results['@graph']
 
