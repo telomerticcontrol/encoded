@@ -489,7 +489,7 @@ def batch_download(context, request):
         path = '/search/?%s' % urlencode(param_list, True)
         print('batch_download', 'batch_download', 'GET', 'search path', path)
         results = request.embed(path, as_user=True)
-        print('batch_download', 'batch_download', 'GET', 'search results', results.keys())
+        print('batch_download', 'batch_download', 'GET', 'search results', results['@graph'])
         experiments = results['@graph']
 
     exp_files = [
