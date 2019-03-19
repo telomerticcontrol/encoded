@@ -488,11 +488,11 @@ def batch_download(context, request):
         results = request.embed(path, as_user=True)
         experiments = results['@graph']
 
-    exp_files = (
+    exp_files = [
             exp_file
             for exp in experiments
             for exp_file in exp.get('files', [])
-    )
+    ]
     print('batch_download', 'batch_download', 'exps', len(experiments), 'files', len(exp_files))
     files = [metadata_link]
     for exp_file in exp_files:
