@@ -827,12 +827,21 @@ class DateSelectorFacet extends React.Component {
 
         // if a date range has already been selected, we want to over-write that date range with a new one
         let searchBaseForDateRange = searchBase;
-        if (this.props.filters.filter(filter => filter.field === 'searchTerm').length > 0) {
-            const searchTermFilter = this.props.filters.filter(filter => filter.field === 'searchTerm');
+        const existingFilter = this.props.filters.filter(filter => filter.field === 'searchTerm' && filter.term.indexOf(field) > -1);
+        if (existingFilter.length > 0) {
+            const searchTermFilter = existingFilter;
             searchBaseForDateRange = `${searchTermFilter[0].remove}&`;
         }
 
         const searchString = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
+        
+        console.log("searchString");
+        console.log(searchString);
+        
+        const resetString = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
+        
+        console.log("resetString");
+        console.log(resetString);
 
         const currentMonthSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear}-${this.state.currentMonth + 1}-01 TO ${this.state.currentYear}-${this.state.currentMonth + 1}-${new Date(this.state.currentYear, this.state.currentMonth + 1, 0).getDate()}]`;
 
@@ -842,6 +851,14 @@ class DateSelectorFacet extends React.Component {
             return (
                 <div className="facet date-selector-facet">
                     <h5>{titleComponent}</h5>
+                    {existingFilter.length > 0 ?
+                        <div className="selected-date-range">
+                            <div>Selected date range: </div>
+                            {existingFilter.map(filter =>
+                                <div key={filter.term}>{filter.term.substring(filter.term.indexOf('[') + 1, filter.term.indexOf(']')).replace('TO', 'to')}</div>
+                            )}
+                        </div>
+                    : null}
                     <a href={currentMonthSearch}>
                         <div className="date-selector-btn">
                             <i className="icon icon-caret-right" />
@@ -892,6 +909,11 @@ class DateSelectorFacet extends React.Component {
                     <a href={searchString}>
                         <button className="btn btn-info btn-sm apply-date-selector">
                             Apply changes
+                        </button>
+                    </a>
+                    <a href={resetString}>
+                        <button className="btn btn-info btn-sm reset-date-selector">
+                            Reset date range
                         </button>
                     </a>
                 </div>

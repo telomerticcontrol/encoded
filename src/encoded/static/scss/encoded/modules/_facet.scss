@@ -293,6 +293,15 @@
     margin: 10px auto;
 }
 
+.reset-date-selector {
+    margin-left: 5px;
+}
+
+.selected-date-range {
+    font-style: italic;
+    margin-bottom: 10px;
+}
+
 .typeahead-entry, .general-search-entry {
     padding: 2px;
     display: flex;
