@@ -233,4 +233,4 @@ class GenericQualityMetric(QualityMetric, CalculatedAssayTermID):
     })
 class MicroRnaQualityMetric(QualityMetric, CalculatedAssayTermID):
     item_type = 'micro_rna_quality_metric'
-    schema = load_schema('encoded:schemas/micro_rna_quality_metric.json') 
+    schema = load_schema('encoded:schemas/micro_rna_quality_metric.json')
