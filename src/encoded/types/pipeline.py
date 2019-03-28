@@ -174,9 +174,6 @@ class AnalysisStepVersion(Item):
 class AnalysisStepRun(Item):
     item_type = 'analysis_step_run'
     schema = load_schema('encoded:schemas/analysis_step_run.json')
-    rev = {
-        'following_step_runs': ('AnalysisStepRun', 'previous_step_runs')
-    }
     embedded = [
         'analysis_step_version.analysis_step',
     ]
@@ -196,5 +193,12 @@ class AnalysisStepRun(Item):
         },
         "notSubmittable": True,
     })
-    def following_step_runs(self, request, following_step_runs):
-        return paths_filtered_by_status(request, following_step_runs)
+    def previous_step_runs(self, request, input_files=None):
+        if not input_files:
+            return None
+        previous_step_runs = set()
+        for f in paths_filtered_by_status(request, input_files):
+            file_obj = request.embed(f, '@@object')
+            if 'output_from_step_run' in file_obj:
+                previous_step_runs |= set(file_obj['output_from_step_run'])
+        return sorted(previous_step_runs)

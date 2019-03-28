@@ -4,30 +4,24 @@ from snovault import (
 )
 
 
-@audit_checker(
-    'Analysis',
-    frame=['analysis_step_runs.analysis_step_version.analysis_step']
-)
-def audit_mismatch_pipeline(value, system):
-    '''
-    Analysis pipeline needs to match pipelines its step runs belong to.
-    '''
-    if 'pipeline' not in value:
-        return
-    analysis_pipeline = value['pipeline']
-    for step_run in value['analysis_step_runs']:
-        step = step_run['analysis_step_version']['analysis_step']
-        if analysis_pipeline not in step['pipelines']:
-            detail = (
-                "The analysis_step_run {} belongs to {} pipelines, "
-                "none of which matches analsis pipeline {}."
-            ).format(
-                step_run['@id'],
-                ', '.join(step['pipelines']),
-                analysis_pipeline
-            )
-            yield AuditFailure(
-                'inconsistent pipeline',
-                detail,
-                level='INTERNAL_ACTION'
-            )
+@audit_checker('Analysis', frame=[])
+def audit_completeness(value, system):
+    if value.get('miss_steps'):
+        detail = (
+            "Miss analysis steps: {} according to analysis template {}."
+        ).format(', '.join(value['miss_steps']), value['analysis_template'])
+        yield AuditFailure(
+            'miss analysis steps',
+            detail,
+            level='INTERNAL_ACTION'
+        )
+    for analysis_step_runs in value.get('duplicated_step_runs', []):
+        detail = (
+            "Potentially duplicated analysis step runs {} which have "
+            "the same analysis step and input files."
+        ).format(', '.join(analysis_step_runs))
+        yield AuditFailure(
+            'duplicated step runs',
+            detail,
+            level='INTERNAL_ACTION'
+        )
