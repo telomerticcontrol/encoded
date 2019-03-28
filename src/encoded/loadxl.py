@@ -56,6 +56,7 @@ ORDER = [
     'analysis_step',
     'analysis_step_version',
     'pipeline',
+    'analysis_template',
     'analysis',
     'analysis_step_run',
     'file',
