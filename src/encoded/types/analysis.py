@@ -139,11 +139,6 @@ class Analysis(Item):
                 output_files |= set(step_run_obj['output_files'])
         return paths_filtered_by_status(request, output_files)
 
-    # Override the analyses property of dataset
-    @calculated_property()
-    def analyses(self):
-        return None
-
 
 @collection(
     name='analysis-templates',
