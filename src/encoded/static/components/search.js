@@ -729,22 +729,32 @@ class DateSelectorFacet extends React.Component {
             endMonth: undefined,
             currentYear: new Date().getFullYear(),
             currentMonth: new Date().getMonth(),
+            activeFacet: 'date_released',
         };
 
-        // Bind `this` to non-React methods.
         this.selectStartYear = this.selectStartYear.bind(this);
         this.selectStartMonth = this.selectStartMonth.bind(this);
         this.selectEndYear = this.selectEndYear.bind(this);
         this.selectEndMonth = this.selectEndMonth.bind(this);
+        this.toggleDateFacet = this.toggleDateFacet.bind(this);
+        this.setActiveFacetParameters = this.setActiveFacetParameters.bind(this);
     }
 
     componentDidMount() {
-        const dateSubmitted = this.props.facet;
-        let dateSubmittedTerms = [];
-        if (dateSubmitted.terms[0].key.split(', ')) {
-            dateSubmittedTerms = dateSubmitted.terms.sort((a, b) => (new Date(a.key) - new Date(b.key)));
+        this.setActiveFacetParameters();
+    }
+
+    setActiveFacetParameters() {
+        console.log('setting active facet parameters');
+        console.log('this is the active facet');
+        console.log(this.state.activeFacet)
+        const activeFacet = this.props.facets.filter(f => f.field === this.state.activeFacet)[0];
+
+        let activeFacetTerms = [];
+        if (activeFacet.terms[0].key.split(', ')) {
+            activeFacetTerms = activeFacet.terms.sort((a, b) => (new Date(a.key) - new Date(b.key)));
         } else {
-            dateSubmittedTerms = dateSubmitted.terms.sort((a, b) => (new Date(a.key) - new Date(b.key)));
+            activeFacetTerms = activeFacet.terms.sort((a, b) => (new Date(a.key) - new Date(b.key)));
         }
 
         const monthNames = { January: 1, February: 2, March: 3, April: 4, May: 5, June: 6, July: 7, August: 8, September: 9, October: 10, November: 11, December: 12 };
@@ -752,21 +762,20 @@ class DateSelectorFacet extends React.Component {
         // Collect available years and months for date submitted drop-down options
         let possibleYearsAndMonths = [];
         let uniqueYears = [];
-        let uniqueMonths = [];
-        if (dateSubmitted.terms[0].key.split(', ').length > 1) {
-            possibleYearsAndMonths = dateSubmittedTerms.map(term => `${term.key.split(', ')[1]}-${monthNames[term.key.split(', ')[0]]}`).filter((item, i, ar) => (ar.indexOf(item) === i));
-
-            uniqueYears = dateSubmittedTerms.map(term => term.key.split(', ')[1]).filter((item, i, ar) => (ar.indexOf(item) === i));
-
-            uniqueMonths = dateSubmittedTerms.map(term => term.key.split(', ')[0]).filter((item, i, ar) => (ar.indexOf(item) === i));
+        if (activeFacet.terms[0].key.split(', ').length > 1) {
+            possibleYearsAndMonths = activeFacetTerms.map(term => `${term.key.split(', ')[1]}-${monthNames[term.key.split(', ')[0]]}`).filter((item, i, ar) => (ar.indexOf(item) === i));
+            uniqueYears = activeFacetTerms.map(term => term.key.split(', ')[1]).filter((item, i, ar) => (ar.indexOf(item) === i));
         } else {
-            possibleYearsAndMonths = dateSubmittedTerms.map(term => `${term.key.split('-')[0]}-${term.key.split('-')[1]}`).filter((item, i, ar) => (ar.indexOf(item) === i));
-
-            uniqueYears = dateSubmittedTerms.map(term => term.key.split('-')[0]).filter((item, i, ar) => (ar.indexOf(item) === i));
-
-            uniqueMonths = dateSubmittedTerms.map(term => term.key.split('-')[1]).filter((item, i, ar) => (ar.indexOf(item) === i));
+            possibleYearsAndMonths = activeFacetTerms.map(term => `${term.key.split('-')[0]}-${term.key.split('-')[1]}`).filter((item, i, ar) => (ar.indexOf(item) === i));
+            uniqueYears = activeFacetTerms.map(term => term.key.split('-')[0]).filter((item, i, ar) => (ar.indexOf(item) === i));
         }
         this.setState({ possibleYearsAndMonths });
+
+        console.log('possibleYearsAndMonths');
+        console.log(possibleYearsAndMonths);
+
+        console.log('activeFacet');
+        console.log(activeFacet);
 
         // Determine range of available years
         this.setState({ startYear: uniqueYears[0] });
@@ -775,11 +784,10 @@ class DateSelectorFacet extends React.Component {
         this.setState({ endYears: uniqueYears });
 
         // Determine range of available months
-        uniqueMonths.sort((a, b) => (a - b));
         const startMonths = possibleYearsAndMonths.filter(date => date.split('-')[0] === uniqueYears[0]).map(date => date.split('-')[1]);
         const endMonths = possibleYearsAndMonths.filter(date => date.split('-')[0] === uniqueYears[uniqueYears.length - 1]).map(date => date.split('-')[1]);
-        this.setState({ startMonth: uniqueMonths[0] });
-        this.setState({ endMonth: uniqueMonths[uniqueMonths.length - 1] });
+        this.setState({ startMonth: startMonths[0] });
+        this.setState({ endMonth: endMonths[endMonths.length - 1] });
         this.setState({ startMonths });
         this.setState({ endMonths });
     }
@@ -820,37 +828,37 @@ class DateSelectorFacet extends React.Component {
         this.setState({ endMonth: event.target.value });
     }
 
+    toggleDateFacet() {
+        this.setState(prevState => ({ activeFacet: prevState.activeFacet === 'date_released' ? 'date_submitted' : 'date_released' }), this.setActiveFacetParameters);
+    }
+
     render() {
-        const { facet, searchBase } = this.props;
-        const titleComponent = facet.title;
-        const field = facet.field;
+        const { facet, searchBase, facets } = this.props;
+        const field = this.state.activeFacet;
+        const activeFacet = facets.filter(f => f.field === this.state.activeFacet)[0];
+
+        console.log('activeFacet');
+        console.log(activeFacet);
 
         // if a date range has already been selected, we want to over-write that date range with a new one
-        let searchBaseForDateRange = searchBase;
         const existingFilter = this.props.filters.filter(filter => filter.field === 'searchTerm' && filter.term.indexOf(field) > -1);
+        let resetString = '';
         if (existingFilter.length > 0) {
-            const searchTermFilter = existingFilter;
-            searchBaseForDateRange = `${searchTermFilter[0].remove}&`;
+            resetString = `${existingFilter[0].remove}&`;
+        } else {
+            resetString = searchBase;
         }
 
-        const searchString = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
-        
-        console.log("searchString");
-        console.log(searchString);
-        
-        const resetString = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
-        
-        console.log("resetString");
-        console.log(resetString);
+        const searchString = `${searchBase}searchTerm=@type:Experiment ${this.state.activeFacet}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
 
-        const currentMonthSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear}-${this.state.currentMonth + 1}-01 TO ${this.state.currentYear}-${this.state.currentMonth + 1}-${new Date(this.state.currentYear, this.state.currentMonth + 1, 0).getDate()}]`;
+        const currentMonthSearch = `${searchBase}searchTerm=@type:Experiment ${field}:[${this.state.currentYear}-${this.state.currentMonth + 1}-01 TO ${this.state.currentYear}-${this.state.currentMonth + 1}-${new Date(this.state.currentYear, this.state.currentMonth + 1, 0).getDate()}]`;
 
-        const currentYearSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear - 1}-${this.state.currentMonth + 1}-01 TO ${this.state.currentYear}-${this.state.currentMonth + 1}-${new Date(this.state.currentYear, this.state.currentMonth + 1, 0).getDate()}]`;
+        const currentYearSearch = `${searchBase}searchTerm=@type:Experiment ${field}:[${this.state.currentYear - 1}-${this.state.currentMonth + 1}-01 TO ${this.state.currentYear}-${this.state.currentMonth + 1}-${new Date(this.state.currentYear, this.state.currentMonth + 1, 0).getDate()}]`;
 
-        if ((facet.terms.length && facet.terms.some(term => term.doc_count)) || (field.charAt(field.length - 1) === '!')) {
+        if ((activeFacet.terms.length && activeFacet.terms.some(term => term.doc_count)) || (field.charAt(field.length - 1) === '!')) {
             return (
-                <div className="facet date-selector-facet">
-                    <h5>{titleComponent}</h5>
+                <div className={`facet date-selector-facet ${facet.field === 'date_released' ? 'display-date-selector' : ''}`}>
+                    <h5>Date range selection</h5>
                     {existingFilter.length > 0 ?
                         <div className="selected-date-range">
                             <div>Selected date range: </div>
@@ -859,6 +867,25 @@ class DateSelectorFacet extends React.Component {
                             )}
                         </div>
                     : null}
+
+                    <div className="date-selector-toggle-wrapper">
+                        <div className="date-selector-toggle"><input
+                            type="radio"
+                            name="released"
+                            value="released"
+                            checked={this.state.activeFacet === 'date_released'}
+                            onChange={this.toggleDateFacet}
+                        />Released
+                        </div>
+                        <div className="date-selector-toggle"><input
+                            type="radio"
+                            name="submitted"
+                            value="submitted"
+                            checked={this.state.activeFacet === 'date_submitted'}
+                            onChange={this.toggleDateFacet}
+                        />Submitted
+                        </div>
+                    </div>
                     <a href={currentMonthSearch}>
                         <div className="date-selector-btn">
                             <i className="icon icon-caret-right" />
@@ -913,7 +940,7 @@ class DateSelectorFacet extends React.Component {
                     </a>
                     <a href={resetString}>
                         <button className="btn btn-info btn-sm reset-date-selector">
-                            Reset date range
+                            Reset
                         </button>
                     </a>
                 </div>
@@ -927,6 +954,7 @@ class DateSelectorFacet extends React.Component {
 
 DateSelectorFacet.propTypes = {
     facet: PropTypes.object.isRequired,
+    facets: PropTypes.array.isRequired,
     filters: PropTypes.array.isRequired,
     searchBase: PropTypes.string.isRequired, // Base URI for the search
 };
@@ -1295,7 +1323,7 @@ export class FacetList extends React.Component {
                         if (hideTypes && facet.field === 'type') {
                             return <span key={facet.field} />;
                         }
-                        if (facet.field === 'date_submitted' || facet.field === 'date_released') {
+                        if (facet.field === 'date_released') {
                             return (
                                 <DateSelectorFacet
                                     {...this.props}
@@ -1304,8 +1332,12 @@ export class FacetList extends React.Component {
                                     filters={filters}
                                     width={width}
                                     negationFilters={negationFilters}
+                                    facets={facets}
                                 />
                             );
+                        }
+                        if (facet.field === 'date_submitted') {
+                            return null;
                         }
                         return (
                             <Facet

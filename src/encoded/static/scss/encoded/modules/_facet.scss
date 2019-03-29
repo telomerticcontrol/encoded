@@ -302,6 +302,17 @@
     margin-bottom: 10px;
 }
 
+.date-selector-toggle-wrapper {
+    .date-selector-toggle {
+        display: inline-block;
+        input {
+            margin: 5px;
+        }
+        margin-right: 10px;
+    }
+    margin-bottom: 10px;
+}
+
 .typeahead-entry, .general-search-entry {
     padding: 2px;
     display: flex;
