@@ -749,7 +749,7 @@ class DateSelectorFacet extends React.Component {
     setActiveFacetParameters() {
         console.log('setting active facet parameters');
         console.log('this is the active facet');
-        console.log(this.state.activeFacet)
+        console.log(this.state.activeFacet);
         const activeFacet = this.props.facets.filter(f => f.field === this.state.activeFacet)[0];
         const activeFacetTerms = _.sortBy(activeFacet.terms, obj => moment(obj.key, 'YYYY-MM-DD').toISOString());
 
@@ -848,14 +848,15 @@ class DateSelectorFacet extends React.Component {
         } else {
             resetString = searchBase;
         }
-        console.log('resetString');
-        console.log(resetString);
 
-        const searchString = `${searchBaseForDateRange}searchTerm=@type:Experiment ${this.state.activeFacet}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
+        const daysInEndMonth = moment(`${this.state.endYear}-${this.state.endMonth}`, 'YYYY-MM').daysInMonth();
+        const daysInCurrentMonth = moment(`${this.state.currentYear}-${this.state.currentMonth}`, 'YYYY-MM').daysInMonth();
 
-        const currentMonthSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear}-${this.state.currentMonth}-01 TO ${this.state.currentYear}-${this.state.currentMonth}-${new Date(this.state.currentYear, this.state.currentMonth, 0).getDate()}]`;
+        const searchString = `${searchBaseForDateRange}searchTerm=@type:Experiment ${this.state.activeFacet}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${daysInEndMonth}]`;
 
-        const currentYearSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear - 1}-${this.state.currentMonth}-01 TO ${this.state.currentYear}-${this.state.currentMonth}-${new Date(this.state.currentYear, this.state.currentMonth, 0).getDate()}]`;
+        const currentMonthSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear}-${this.state.currentMonth}-01 TO ${daysInCurrentMonth}]`;
+
+        const currentYearSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear - 1}-${this.state.currentMonth}-01 TO ${this.state.currentYear}-${this.state.currentMonth}-${daysInCurrentMonth}]`;
 
         if ((activeFacet.terms.length && activeFacet.terms.some(term => term.doc_count)) || (field.charAt(field.length - 1) === '!')) {
             return (
