@@ -191,7 +191,7 @@ const convertExperimentToDataTable = (context, expandedRowCategories, expandedCl
             return {
                 rowContent: [
                     {
-                        header: <a href={`${context.matrix.search_base}&${rowSubCategory}=${subCategoryQuery}`} style={{ borderColor: rowCategoryColor }}>{subCategoryBucket.key}</a>,
+                        header: <a href={`${context.matrix.search_base}&${rowSubCategory}=${subCategoryQuery}`}>{subCategoryBucket.key}</a>,
                     },
                 ].concat(cells),
                 css: 'matrix__row-data',

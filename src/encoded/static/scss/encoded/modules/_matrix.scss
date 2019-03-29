@@ -128,7 +128,6 @@ $row-data-header-width: 200px;
 
             // Cell that holds search box.
             &.matrix__col-category-header--corner {
-                min-width: $row-data-header-width;
             }
         }
     }
@@ -138,12 +137,11 @@ $row-data-header-width: 200px;
 
         > th {
             width: $row-data-header-width;
-            border-right-style: solid;
-            border-right-width: 1px;
 
             > a {
                 display: block;
-                padding: 2px 10px;
+                padding: 0 10px;
+                border-right: 1px solid #f0f0f0;
                 text-align: right;
                 color: #000;
                 text-decoration: none;
@@ -154,13 +152,13 @@ $row-data-header-width: 200px;
         > td {
             position: relative;
             width: $data-cell-width;
-            padding: 2px 0 !important;
+            padding: 0 !important;
             text-align: center;
-            border-right: 1px solid #f0f0f0;
             border-bottom: 1px solid #f0f0f0;
 
             > a {
                 display: block;
+                border-right: 1px solid #f0f0f0;
 
                 &:hover {
                     text-decoration: none;
@@ -174,11 +172,14 @@ $row-data-header-width: 200px;
         > th {
             padding-top: 20px;
             vertical-align: bottom;
+            white-space: nowrap;
 
             & > div {
                 display: flex;
+                padding-right: 10px;
                 border-top-left-radius: 14px;
                 border-bottom-left-radius: 14px;
+                border-right: 1px solid #f0f0f0;
 
                 & > button {
                     flex: 0 0 22px;
@@ -205,13 +206,13 @@ $row-data-header-width: 200px;
 
         > td {
             padding: 20px 0 0 !important;
-            border-right: 1px solid #f0f0f0;
 
             > div {
                 width: $data-cell-width;
+                border-right: 1px solid #f0f0f0;
                 text-align: center;
                 vertical-align: middle;
-                font-weight: bold;
+                font-weight: normal;
                 font-size: 1.1rem;
                 color: #fff;
             }
