@@ -6,6 +6,7 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from '../libs/bootstrap/mo
 import { svgIcon } from '../libs/svg-icons';
 import { FetchedData, Param } from './fetched';
 import * as globals from './globals';
+import { ViewControls } from './objectutils';
 import { FacetList } from './search';
 import StickyHeader from './StickyHeader';
 
@@ -674,17 +675,19 @@ class Report extends React.Component {
                                 Showing results {this.state.from + 1} to {Math.min(context.total, this.state.to)} of {context.total}
                             </h4>
                             <div className="results-table-control">
-                                <div className="btn-attached">
-                                    {context.views && context.views.map((view, i) => {
-                                        // Strip any `field` properties out of the view's href as
-                                        // they don't apply to search or matrix
-                                        const parsedViewUrl = url.parse(view.href, true);
-                                        delete parsedViewUrl.query.field;
-                                        delete parsedViewUrl.search;
-                                        const href = url.format(parsedViewUrl);
-                                        return <a href={href} className="btn btn-info btn-sm btn-svgicon" title={view.title} key={i}>{svgIcon(view2svg[view.icon])}</a>;
-                                    })}
-                                </div>
+                                <ViewControls
+                                    views={context.views}
+                                    hrefProcessor={
+                                        (viewHref) => {
+                                            // Strip any `field` properties out of the view's href as
+                                            // they don't apply to search or matrix
+                                            const parsedViewUrl = url.parse(viewHref, true);
+                                            delete parsedViewUrl.query.field;
+                                            delete parsedViewUrl.search;
+                                            return url.format(parsedViewUrl);
+                                        }
+                                    }
+                                />
                                 <button className="btn btn-info btn-sm" title="Choose columns" onClick={this.handleSelectorClick}>
                                     <i className="icon icon-columns" /> Columns
                                 </button>

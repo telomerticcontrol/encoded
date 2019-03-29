@@ -4,10 +4,16 @@ import color from 'color';
 import pluralize from 'pluralize';
 import _ from 'underscore';
 import url from 'url';
-import { svgIcon } from '../libs/svg-icons';
+import { Panel, PanelBody } from '../libs/bootstrap/panel';
+import { collapseIcon } from '../libs/svg-icons';
+import DataTable from './datatable';
 import * as globals from './globals';
-import { BrowserSelector, MatrixInternalTags } from './objectutils';
+import { BrowserSelector, MatrixInternalTags, ViewControls } from './objectutils';
 import { BatchDownload, FacetList, TextFilter } from './search';
+
+
+// Number of subcategory items to show when subcategory isn't disclosed.
+const SUB_CATEGORY_SHORT_SIZE = 3;
 
 
 class GroupMoreButton extends React.Component {
@@ -39,6 +45,419 @@ GroupMoreButton.defaultProps = {
 };
 
 
+/**
+ * Render a category row of the matrix without its subcategory rows.
+ */
+class CategoryRow extends React.Component {
+    constructor() {
+        super();
+        this.handleClick = this.handleClick.bind(this);
+    }
+
+    /**
+     * Called when the user clicks the expansion button to expand or collapse the section.
+     */
+    handleClick() {
+        this.props.expandClickHandler(this.props.categoryName);
+    }
+
+    render() {
+        const { filterHref, categoryName, categoryId, categoryColor, subCategoryLength, expanded } = this.props;
+        return (
+            <div style={{ backgroundColor: categoryColor }}>
+                {subCategoryLength > SUB_CATEGORY_SHORT_SIZE ?
+                    <button aria-expanded={expanded} aria-controls={categoryId} onClick={this.handleClick}>
+                        {collapseIcon(!expanded)}
+                    </button>
+                :
+                    <div className="matrix__row-category-spacer" />
+                }
+                <a href={filterHref} id={categoryId}>{categoryName}</a>
+            </div>
+
+        );
+    }
+}
+
+CategoryRow.propTypes = {
+    filterHref: PropTypes.string.isRequired,
+    categoryName: PropTypes.string.isRequired,
+    categoryId: PropTypes.string.isRequired,
+    categoryColor: PropTypes.string.isRequired,
+    subCategoryLength: PropTypes.number.isRequired,
+    expanded: PropTypes.bool,
+    expandClickHandler: PropTypes.func.isRequired,
+};
+
+CategoryRow.defaultProps = {
+    expanded: false,
+};
+
+
+class SearchFilter extends React.Component {
+    constructor() {
+        super();
+        this.onChange = this.onChange.bind(this);
+    }
+
+    onChange(href) {
+        this.context.navigate(href);
+    }
+
+    render() {
+        const { context } = this.props;
+        const parsedUrl = url.parse(this.context.location_href);
+        const matrixBase = parsedUrl.search || '';
+        const matrixSearch = matrixBase + (matrixBase ? '&' : '?');
+        const parsed = url.parse(matrixBase, true);
+        const queryStringType = parsed.query.type || '';
+        const type = pluralize(queryStringType.toLocaleLowerCase());
+        return (
+            <div className="matrix-general-search">
+                <p>Enter search terms to filter the {type} included in the matrix.</p>
+                <div className="general-search-entry">
+                    <i className="icon icon-search" />
+                    <div className="searchform">
+                        <TextFilter filters={context.filters} searchBase={matrixSearch} onChange={this.onChange} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+
+SearchFilter.propTypes = {
+    /** Matrix search results object */
+    context: PropTypes.object.isRequired,
+};
+
+SearchFilter.contextTypes = {
+    navigate: PropTypes.func,
+    location_href: PropTypes.string,
+};
+
+
+const convertExperimentToDataTable = (context, expandedRowCategories, expandedClickHandler) => {
+    const rowCategory = context.matrix.y.group_by[0];
+    const rowSubCategory = context.matrix.y.group_by[1];
+    const columnCategory = context.matrix.x.group_by;
+
+    // Generate the top-row table header labels. First item null to allow for left-column row
+    // headers.
+    const colCategoryNames = context.matrix.x.buckets.map(colCategoryBucket => colCategoryBucket.key);
+    const header = [{ header: <span />, css: 'matrix__col-category-header--corner' }].concat(colCategoryNames.map(colCategoryName => ({
+        header: <a href={`${context.matrix.search_base}&${columnCategory}=${colCategoryName}`}>{colCategoryName}</a>,
+    })));
+
+    // Generate the main table content including the left header, row by row, starting with the
+    // horizontal header as the initial accumulated row.
+    const rowCategoryData = context.matrix.y[rowCategory].buckets;
+    const rowCategoryColors = globals.biosampleTypeColors.colorList(rowCategoryData.map(rowDataValue => rowDataValue.key));
+    const matrixRowKeys = ['column-categories'];
+    let matrixRow = 1;
+    const matrixDataTable = rowCategoryData.reduce((accumulatingTable, categoryBucket, rowCategoryIndex) => {
+        const subCategoryData = categoryBucket[rowSubCategory].buckets;
+        const rowCategoryColor = rowCategoryColors[rowCategoryIndex];
+        const seriesColor = color(rowCategoryColor);
+
+        // Generate one category's rows of subcategories, adding a header cell for each subcategory
+        // on the left of the row.
+        const categoryNameQuery = globals.encodedURIComponent(categoryBucket.key);
+        const categoryExpanded = expandedRowCategories.indexOf(categoryBucket.key) !== -1;
+        const renderedData = categoryExpanded ? subCategoryData : subCategoryData.slice(0, SUB_CATEGORY_SHORT_SIZE);
+        matrixRowKeys[matrixRow] = categoryNameQuery;
+        matrixRow += 1;
+        const subCategoryRows = renderedData.map((subCategoryBucket) => {
+            const cells = subCategoryBucket[columnCategory].map((cellData, columNum) => {
+                const cellColor = seriesColor.clone();
+                cellColor.lightness(cellColor.lightness() + ((1 - (cellData / context.matrix.max_cell_doc_count)) * (100 - cellColor.lightness())));
+                const textColor = cellColor.luminosity() > 0.5 ? '#000' : '#fff';
+
+                // Generate one data cell.
+                return {
+                    content: (
+                        cellData > 0 ?
+                            <a href={`${context.matrix.search_base}&${rowSubCategory}=${subCategoryBucket.key}&${columnCategory}=${colCategoryNames[columNum]}`} style={{ color: textColor }}>{cellData}</a>
+                        : null
+                    ),
+                    style: { backgroundColor: cellData > 0 ? cellColor.hexString() : 'transparent' },
+                };
+            });
+
+            // Add a single row's data and left header to the matrix.
+            const subCategoryQuery = globals.encodedURIComponent(subCategoryBucket.key);
+            matrixRowKeys[matrixRow] = `${categoryNameQuery}-${subCategoryQuery}`;
+            matrixRow += 1;
+            return {
+                rowContent: [
+                    {
+                        header: <a href={`${context.matrix.search_base}&${rowSubCategory}=${subCategoryQuery}`} style={{ borderColor: rowCategoryColor }}>{subCategoryBucket.key}</a>,
+                    },
+                ].concat(cells),
+                css: 'matrix__row-data',
+            };
+        });
+
+        // For the current category, collect the sum of every column into an array.
+        // categoryBucket is object with categoryBucket[rowSubCategory].buckets being array representing each row within the category (e.g. 'cell line').
+        // Each entry is object with categoryBucket[rowSubCategory].buckets[i][columnCategory] being array of counts, one per column
+        const subCategorySums = [];
+        categoryBucket[rowSubCategory].buckets.forEach((rowData) => {
+            // `rowData` has all the data for one row
+            rowData[columnCategory].forEach((value, colIndex) => {
+                subCategorySums[colIndex] = (subCategorySums[colIndex] || 0) + value;
+            });
+        });
+
+        // Generate a row for a row category alone, concatenated with the subcategory rows under
+        // it. This concatenates one array of array (the row category cell) with another array of
+        // arrays (the data rows that include their own left headers).
+        return accumulatingTable.concat(
+            [
+                {
+                    rowContent: [{
+                        header: (
+                            <CategoryRow
+                                filterHref={`${context['@id']}&${rowCategory}=${categoryNameQuery}&y.limit=`}
+                                categoryName={categoryBucket.key}
+                                categoryId={categoryNameQuery}
+                                categoryColor={rowCategoryColor}
+                                subCategoryLength={subCategoryData.length}
+                                expanded={categoryExpanded}
+                                expandClickHandler={expandedClickHandler}
+                            />
+                        ),
+                    }].concat(subCategorySums.map(subCategorySum => ({ content: <div style={{ backgroundColor: rowCategoryColor }}>{subCategorySum}</div> }))),
+                    css: `matrix__row-category${rowCategoryIndex === 0 ? ' matrix__row-category--first' : ''}`,
+                },
+            ],
+            subCategoryRows
+        );
+    }, [{ rowContent: header, css: 'matrix__col-category-header' }]);
+    return { dataTable: matrixDataTable, rowKeys: matrixRowKeys };
+};
+
+
+const MatrixControls = ({ context }) => (
+    <div className="matrix__controls">
+        <h1>{context.title}</h1>
+        <MatrixInternalTags context={context} />
+        <ViewControls views={context.views} css="matrix__views" />
+    </div>
+);
+
+MatrixControls.propTypes = {
+    /** Search results object */
+    context: PropTypes.object.isRequired,
+};
+
+
+// Render the title panel and the horizontal facets.
+const MatrixHeader = (props) => {
+    const { context } = props;
+
+    return (
+        <div className="matrix__header">
+            <MatrixControls context={context} />
+        </div>
+    );
+};
+
+MatrixHeader.propTypes = {
+    context: PropTypes.object.isRequired, // Summary search result object
+};
+
+
+/**
+ * Render the vertical facets.
+ */
+class MatrixVerticalFacets extends React.Component {
+    constructor() {
+        super();
+
+        // Bind `this` to non-React methods.
+        this.onFilter = this.onFilter.bind(this);
+    }
+
+    onFilter(e) {
+        const search = e.currentTarget.getAttribute('href');
+        this.context.navigate(search);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    render() {
+        const { context } = this.props;
+
+        // Extract the vertical facets from the list of all facets using the array of selected
+        // vertical facet fields.
+        const vertFacets = context.facets.filter(facet => context.matrix.y.facets.indexOf(facet.field) >= 0);
+
+        // Calculate the searchBase, which is the current search query string fragment that can have
+        // terms added to it.
+        const searchBase = `${url.parse(this.context.location_href).search}&` || '?';
+
+        return (
+            <div className="matrix__facets-vertical">
+                <SearchFilter context={context} />
+                <FacetList
+                    facets={vertFacets}
+                    filters={context.filters}
+                    searchBase={searchBase}
+                    onFilter={this.onFilter}
+                    addClasses="matrix-facets"
+                />
+            </div>
+        );
+    }
+}
+
+MatrixVerticalFacets.propTypes = {
+    context: PropTypes.object.isRequired, // Summary search result object
+};
+
+MatrixVerticalFacets.contextTypes = {
+    /** Current URL */
+    location_href: PropTypes.string,
+    /** System navigation function */
+    navigate: PropTypes.func,
+};
+
+
+class MatrixData extends React.Component {
+    constructor() {
+        super();
+        this.state = {
+            disclosedRowCategories: [],
+        };
+        this.discloseClickHandler = this.discloseClickHandler.bind(this);
+    }
+
+    /**
+     * Called when the user clicks on the disclosure button on a category to collapse or expand it.
+     * @param {string} category Key for the category
+     */
+    discloseClickHandler(category) {
+        this.setState((prevState) => {
+            const matchingCategoryIndex = prevState.disclosedRowCategories.indexOf(category);
+            if (matchingCategoryIndex === -1) {
+                // Category doesn't exist in array, so add it.
+                return { disclosedRowCategories: prevState.disclosedRowCategories.concat(category) };
+            }
+
+            // Category does exist in array, so remove it.
+            const disclosedCategories = prevState.disclosedRowCategories;
+            return { disclosedRowCategories: [...disclosedCategories.slice(0, matchingCategoryIndex), ...disclosedCategories.slice(matchingCategoryIndex + 1)] };
+        });
+    }
+
+    render() {
+        // Convert encode data to a DataTable object.
+        const { dataTable, rowKeys } = convertExperimentToDataTable(this.props.context, this.state.disclosedRowCategories, this.discloseClickHandler);
+        const matrixConfig = {
+            rows: dataTable,
+            rowKeys,
+            tableCss: 'matrix',
+        };
+
+        return (
+            <DataTable tableData={matrixConfig} />
+        );
+    }
+}
+
+MatrixData.propTypes = {
+    /** Matrix search result object */
+    context: PropTypes.object.isRequired,
+};
+
+/**
+ * Display the horizontally scrolling matrix presentation area.
+ */
+class MatrixPresentation extends React.Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            leftShadingShowing: false,
+            rightShadingShowing: false,
+        };
+        this.handleScrollShading = this.handleScrollShading.bind(this);
+        this.handleOnScroll = this.handleOnScroll.bind(this);
+    }
+
+    componentDidMount() {
+        // Establish initial matrix scroll shading.
+        this.handleScrollShading(this.scrollElement);
+    }
+
+    /**
+     * Apply shading along the left or right of the scrolling matrix DOM element based on its
+     * current scrolled position.
+     * @param {object} element DOM element to apply shading to
+     */
+    handleScrollShading(element) {
+        if (element.scrollLeft === 0 && this.state.leftShadingShowing) {
+            // Left edge of matrix scrolled into view.
+            this.setState({ leftShadingShowing: false });
+        } else if (element.scrollLeft + element.clientWidth === element.scrollWidth && this.state.rightShadingShowing) {
+            // Right edge of matrix scrolled into view.
+            this.setState({ rightShadingShowing: false });
+        } else if (element.scrollLeft > 0 && !this.state.leftShadingShowing) {
+            // Left edge of matrix scrolled out of view.
+            this.setState({ leftShadingShowing: true });
+        } else if (element.scrollLeft + element.clientWidth < element.scrollWidth && !this.state.rightShadingShowing) {
+            // Right edge of matrix scrolled out of view.
+            this.setState({ rightShadingShowing: true });
+        }
+    }
+
+    /**
+     * Called when the user scrolls the matrix horizontally within its div to handle the shading on
+     * the left and right edges.
+     * @param {object} e React synthetic event
+     */
+    handleOnScroll(e) {
+        this.handleScrollShading(e.target);
+    }
+
+    render() {
+        const { leftShadingShowing, rightShadingShowing } = this.state;
+
+        return (
+            <div className="matrix__data">
+                <div className="matrix__data-content" onScroll={this.handleOnScroll} ref={(element) => { this.scrollElement = element; }}>
+                    <MatrixData context={this.props.context} />
+                </div>
+                <div className={`matrix-shading matrix-shading--left${leftShadingShowing ? ' showing' : ''}`} />
+                <div className={`matrix-shading matrix-shading--right${rightShadingShowing ? ' showing' : ''}`} />
+            </div>
+        );
+    }
+}
+
+MatrixPresentation.propTypes = {
+    /** Matrix search result object */
+    context: PropTypes.object.isRequired,
+};
+
+
+/**
+ * Render the vertical facets and the matrix itself.
+ */
+const MatrixContent = ({ context }) => (
+    <div className="matrix__content">
+        <MatrixVerticalFacets context={context} />
+        <MatrixPresentation context={context} />
+    </div>
+);
+
+MatrixContent.propTypes = {
+    /** Matrix search result object */
+    context: PropTypes.object.isRequired,
+};
+
+
 class Matrix extends React.Component {
     static generateYGroupOpen(matrix) {
         // Make a state for each of the Y groups (each Y group currently shows a biosample type).
@@ -66,7 +485,6 @@ class Matrix extends React.Component {
         const yGroupOpen = Matrix.generateYGroupOpen(this.props.context.matrix);
         this.state = {
             yGroupOpen,
-            allYGroupsOpen: false,
         };
 
         // Bind this to non-React methods.
@@ -84,7 +502,6 @@ class Matrix extends React.Component {
         const yGroupOpen = Matrix.generateYGroupOpen(nextProps.context.matrix);
         this.setState({
             yGroupOpen,
-            allYGroupsOpen: false,
         });
     }
 
@@ -143,225 +560,20 @@ class Matrix extends React.Component {
     }
 
     render() {
-        const context = this.props.context;
-        const matrix = context.matrix;
-        const parsedUrl = url.parse(this.context.location_href);
-        const matrixBase = parsedUrl.search || '';
-        const matrixSearch = matrixBase + (matrixBase ? '&' : '?');
-        const notification = context.notification;
-        const visualizeLimit = 500;
-        const facets = context.facets;
-        if (notification === 'Success' || notification === 'No results found') {
-            const xGrouping = matrix.x.group_by;
-            const primaryYGrouping = matrix.y.group_by[0];
-            const secondaryYGrouping = matrix.y.group_by[1];
-            const xBuckets = matrix.x.buckets;
-            const xLimit = matrix.x.limit || xBuckets.length;
-            const yGroups = matrix.y[primaryYGrouping].buckets;
-            const yGroupFacet = _.findWhere(context.facets, { field: primaryYGrouping });
-            const yGroupOptions = yGroupFacet ? yGroupFacet.terms.map(term => term.key) : [];
-            yGroupOptions.sort();
-            const searchBase = context.matrix.search_base;
-            const visualizeDisabled = matrix.doc_count > visualizeLimit;
-            const colCount = Math.min(xBuckets.length, xLimit + 1);
+        const { context } = this.props;
+        const itemClass = globals.itemClass(context, 'view-item');
 
-            // Get a sorted list of batch hubs keys with case-insensitive sort
-            // NOTE: Tim thinks this is overkill as opposed to simple sort()
-            let visualizeKeys = [];
-            if (context.visualize_batch && Object.keys(context.visualize_batch).length) {
-                visualizeKeys = Object.keys(context.visualize_batch).sort((a, b) => {
-                    const aLower = a.toLowerCase();
-                    const bLower = b.toLowerCase();
-                    return (aLower > bLower) ? 1 : ((aLower < bLower) ? -1 : 0);
-                });
-            }
-
-            // Map view icons to svg icons
-            const view2svg = {
-                'list-alt': 'search',
-                table: 'table',
-                summary: 'summary',
-            };
-
-            // Make an array of colors corresponding to the ordering of biosample_ontology
-            const biosampleTypeColors = globals.biosampleTypeColors.colorList(yGroups.map(yGroup => yGroup.key));
-            const parsed = url.parse(matrixBase, true);
-            const queryStringType = parsed.query.type || '';
-            const type = pluralize(queryStringType.toLocaleLowerCase());
-
+        if (context.matrix.doc_count) {
             return (
-                <div>
-                    <div className="panel data-display main-panel">
-                        <div className="row matrix__facet--horizontal">
-                            <div className="matrix-header">
-                                <div className="row">
-                                    <div className="col-sm-11">
-                                        <div className="matrix-title">
-                                            <h1>{context.title}</h1>
-                                            <MatrixInternalTags context={context} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="row">
-                            <div className="col-sm-5 col-md-4 col-lg-3 sm-no-padding" style={{ paddingRight: 0 }}>
-                                <div className="matrix-general-search">
-                                    <p>Enter search terms to filter the {type} included in the matrix.</p>
-                                    <div className="general-search-entry">
-                                        <i className="icon icon-search" />
-                                        <div className="searchform">
-                                            <TextFilter filters={context.filters} searchBase={matrixSearch} onChange={this.onChange} />
-                                        </div>
-                                    </div>
-                                </div>
-                                <FacetList facets={facets} filters={context.filters} searchBase={matrixSearch} onFilter={this.onFilter} />
-                            </div>
-                            <div className="col-sm-7 col-md-8 col-lg-9 sm-no-padding">
-                                <div className="matrix-wrapper">
-                                    <div className="matrix-group-heading">
-                                        <div className="matrix-group-heading__content">
-                                            {matrix.y.label.toUpperCase()}
-                                        </div>
-                                    </div>
-                                    <table className="matrix">
-                                        <tbody>
-                                            {matrix.doc_count ?
-                                                <tr>
-                                                    <th style={{ width: 20 }} />
-                                                    <th colSpan={colCount + 1} style={{ padding: '5px', borderBottom: 'solid 1px #ddd', textAlign: 'center' }}>{matrix.x.label.toUpperCase()}</th>
-                                                </tr>
-                                            : null}
-                                            <tr style={{ borderBottom: 'solid 1px #ddd' }}>
-                                                <th style={{ textAlign: 'center', 'min-width': 200 }}>
-                                                    <h3>
-                                                        {matrix.doc_count} results
-                                                    </h3>
-                                                    <div className="btn-attached">
-                                                        {matrix.doc_count && context.views ? context.views.map(view => <a href={view.href} key={view.icon} className="btn btn-info btn-sm btn-svgicon" title={view.title}>{svgIcon(view2svg[view.icon])}</a>) : ''}
-                                                    </div>
-                                                    {context.filters.length ?
-                                                        <div className="clear-filters-control-matrix">
-                                                            <a href={context.matrix.clear_matrix}>Clear Filters <i className="icon icon-times-circle" /></a>
-                                                        </div>
-                                                    : null}
-                                                </th>
-                                                {xBuckets.map((xb, i) => {
-                                                    if (i < xLimit) {
-                                                        const href = `${searchBase}&${xGrouping}=${globals.encodedURIComponent(xb.key)}`;
-                                                        return <th key={i} className="rotate30" style={{ width: 10 }}><div><a title={xb.key} href={href}>{xb.key}</a></div></th>;
-                                                    } else if (i === xLimit) {
-                                                        const parsed = url.parse(matrixBase, true);
-                                                        parsed.query['x.limit'] = null;
-                                                        delete parsed.search; // this makes format compose the search string out of the query object
-                                                        const unlimitedHref = url.format(parsed);
-                                                        return <th key={i} className="rotate30" style={{ width: 10 }}><div><span><a href={unlimitedHref}>...and {xBuckets.length - xLimit} more</a></span></div></th>;
-                                                    }
-                                                    return null;
-                                                })}
-                                            </tr>
-                                            {yGroups.map((group, i) => {
-                                                const groupColor = biosampleTypeColors[i];
-                                                const seriesColor = color(groupColor);
-                                                const parsed = url.parse(matrixBase, true);
-                                                parsed.query[primaryYGrouping] = group.key;
-                                                parsed.query['y.limit'] = null;
-                                                delete parsed.search; // this makes format compose the search string out of the query object
-                                                const groupHref = url.format(parsed);
-                                                const rows = [
-                                                    <tr key={`group-${group.key}`}>
-                                                        <th colSpan={colCount + 1} style={{ textAlign: 'left', backgroundColor: groupColor }}>
-                                                            <a href={groupHref} style={{ color: '#fff' }}>{group.key}</a>
-                                                        </th>
-                                                    </tr>,
-                                                ];
-                                                const groupBuckets = group[secondaryYGrouping].buckets;
-                                                const yLimit = matrix.y.limit || groupBuckets.length;
-
-                                                // If this group isn't open (noted by
-                                                // this.state.yGroupOpen[key]), extract just the
-                                                // group rows that are under the display limit.
-                                                const groupRows = (this.state.yGroupOpen[group.key] || this.state.allYGroupsOpen) ? groupBuckets : groupBuckets.slice(0, yLimit);
-                                                const yGroupQueryComponent = `${primaryYGrouping}=${globals.encodedURIComponent(group.key)}`;
-                                                rows.push(...groupRows.map((yb) => {
-                                                    const href = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(yb.key)}&${yGroupQueryComponent}`;
-                                                    return (
-                                                        <tr key={`yb-${yb.key}`}>
-                                                            <th style={{ backgroundColor: '#ddd', border: 'solid 1px white' }}><a href={href}>{yb.key}</a></th>
-                                                            {xBuckets.map((xb, k) => {
-                                                                if (k < xLimit) {
-                                                                    const value = yb[xGrouping][k];
-                                                                    const cellColor = seriesColor.clone();
-                                                                    // scale color between white and the series color
-                                                                    cellColor.lightness(cellColor.lightness() + ((1 - (value / matrix.max_cell_doc_count)) * (100 - cellColor.lightness())));
-                                                                    const textColor = cellColor.luminosity() > 0.5 ? '#000' : '#fff';
-                                                                    const cellHref = `${searchBase}&${secondaryYGrouping}=${globals.encodedURIComponent(yb.key)}&${xGrouping}=${globals.encodedURIComponent(xb.key)}&${yGroupQueryComponent}`;
-                                                                    const title = `${yb.key} / ${xb.key}: ${value}`;
-                                                                    return (
-                                                                        <td key={xb.key} style={{ backgroundColor: cellColor.hexString() }}>
-                                                                            {value ? <a href={cellHref} style={{ color: textColor }} title={title}>{value}</a> : null}
-                                                                        </td>
-                                                                    );
-                                                                }
-                                                                return null;
-                                                            })}
-                                                            {xBuckets.length > xLimit && <td />}
-                                                        </tr>
-                                                    );
-                                                }));
-                                                if (groupBuckets.length > yLimit && !this.state.allYGroupsOpen) {
-                                                    rows.push(
-                                                        <tr>
-                                                            <th className="group-more-cell">
-                                                                <GroupMoreButton
-                                                                    id={group.key}
-                                                                    handleClick={this.handleClick}
-                                                                    displayText={this.state.yGroupOpen[group.key] ? '- See fewer' : `+ See ${groupBuckets.length - yLimit} more…`}
-                                                                />
-                                                            </th>
-                                                            {_.range(colCount - 1).map(n => <td key={n} />)}
-                                                        </tr>
-                                                    );
-                                                }
-                                                return rows;
-                                            })}
-
-                                            {/* Display the See Fewer/See All button controlling
-                                                the whole table if at least one biosample_ontology has
-                                                more than the limit. We know this is the case if at
-                                                least one yGroupOpen state member exists. */}
-                                            {Object.keys(this.state.yGroupOpen).length ?
-                                                <tr>
-                                                    <th className="group-all-groups-cell">
-                                                        <button className="group-all-groups-cell__button" onClick={this.handleSeeAllClick}>
-                                                            {this.state.allYGroupsOpen ? 'See fewer biosamples' : 'See all biosamples'}
-                                                        </button>
-                                                    </th>
-                                                </tr>
-                                            : null}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div className="hubs-controls" ref={(div) => { this.hubscontrols = div; }}>
-                                    {context.batch_download ?
-                                        <BatchDownload context={context} />
-                                    : null}
-                                    {' '}
-                                    {visualizeKeys.length ?
-                                        <BrowserSelector
-                                            visualizeCfg={context.visualize_batch}
-                                            disabled={visualizeDisabled}
-                                            title={visualizeDisabled ? `Filter to ${visualizeLimit} to visualize` : 'Visualize'}
-                                        />
-                                    : null}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <Panel addClasses={itemClass}>
+                    <PanelBody>
+                        <MatrixHeader context={context} />
+                        <MatrixContent context={context} />
+                    </PanelBody>
+                </Panel>
             );
         }
-        return <h4>{notification}</h4>;
+        return <h4>No results found</h4>;
     }
 }
 

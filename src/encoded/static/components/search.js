@@ -4,7 +4,6 @@ import queryString from 'query-string';
 import _ from 'underscore';
 import moment from 'moment';
 import url from 'url';
-import { svgIcon } from '../libs/svg-icons';
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../libs/bootstrap/modal';
 import { TabPanel, TabPanelPane } from '../libs/bootstrap/panel';
 import { auditDecor } from './audit';
@@ -13,7 +12,7 @@ import { FetchedData, Param } from './fetched';
 import GenomeBrowser from './genome_browser';
 import * as globals from './globals';
 import { Attachment } from './image';
-import { BrowserSelector, DisplayAsJson, requestSearch, DocTypeTitle, shadeOverflowOnScroll } from './objectutils';
+import { BrowserSelector, DisplayAsJson, requestSearch, DocTypeTitle, shadeOverflowOnScroll, ViewControls } from './objectutils';
 import { DbxrefList } from './dbxref';
 import Status from './status';
 import { BiosampleSummaryString, BiosampleOrganismNames } from './typeutils';
@@ -1316,13 +1315,6 @@ export class ResultTable extends React.Component {
             });
         }
 
-        // Map view icons to svg icons
-        const view2svg = {
-            table: 'table',
-            th: 'matrix',
-            summary: 'summary',
-        };
-
         // Check whether the search query qualifies for a genome browser display. Start by counting
         // the number of "type" filters exist.
         let typeFilter;
@@ -1408,13 +1400,7 @@ export class ResultTable extends React.Component {
                                 <h4>Showing {results.length} of {total} {label}</h4>
                                 <DisplayAsJson />
                                 <div className="results-table-control">
-                                    {context.views ?
-                                        <div className="btn-attached">
-                                            {context.views.map((view, i) =>
-                                                <a key={i} className="btn btn-info btn-sm btn-svgicon" href={view.href} title={view.title}>{svgIcon(view2svg[view.icon])}</a>
-                                            )}
-                                        </div>
-                                    : null}
+                                    <ViewControls views={context.views} />
 
                                     {total > results.length && searchBase.indexOf('limit=all') === -1 ?
                                         <a

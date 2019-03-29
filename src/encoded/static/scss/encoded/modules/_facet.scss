@@ -43,7 +43,8 @@
         }
     }
 
-    &.summary-facets {
+    &.summary-facets,
+    &.matrix-facets {
         padding: 0;
         border: none;
         border-radius: 0;
