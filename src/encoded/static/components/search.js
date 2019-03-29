@@ -727,10 +727,12 @@ class DateSelectorFacet extends React.Component {
             startMonth: undefined,
             endYear: undefined,
             endMonth: undefined,
-            currentYear: new Date().getFullYear(),
-            currentMonth: new Date().getMonth(),
+            currentYear: moment().format('YYYY'),
+            currentMonth: moment().format('MM'),
             activeFacet: 'date_released',
         };
+        console.log(moment().format('YYYY'));
+        console.log(moment().format('MM'));
 
         this.selectStartYear = this.selectStartYear.bind(this);
         this.selectStartMonth = this.selectStartMonth.bind(this);
@@ -749,13 +751,7 @@ class DateSelectorFacet extends React.Component {
         console.log('this is the active facet');
         console.log(this.state.activeFacet)
         const activeFacet = this.props.facets.filter(f => f.field === this.state.activeFacet)[0];
-
-        let activeFacetTerms = [];
-        if (activeFacet.terms[0].key.split(', ')) {
-            activeFacetTerms = activeFacet.terms.sort((a, b) => (new Date(a.key) - new Date(b.key)));
-        } else {
-            activeFacetTerms = activeFacet.terms.sort((a, b) => (new Date(a.key) - new Date(b.key)));
-        }
+        const activeFacetTerms = _.sortBy(activeFacet.terms, obj => moment(obj.key, 'YYYY-MM-DD').toISOString());
 
         const monthNames = { January: 1, February: 2, March: 3, April: 4, May: 5, June: 6, July: 7, August: 8, September: 9, October: 10, November: 11, December: 12 };
 
@@ -841,19 +837,25 @@ class DateSelectorFacet extends React.Component {
         console.log(activeFacet);
 
         // if a date range has already been selected, we want to over-write that date range with a new one
-        const existingFilter = this.props.filters.filter(filter => filter.field === 'searchTerm' && filter.term.indexOf(field) > -1);
+        const existingFilter = this.props.filters.filter(filter => filter.field === 'searchTerm');
         let resetString = '';
+        let searchBaseForDateRange = searchBase;
         if (existingFilter.length > 0) {
+            console.log('WE FOUND AN EXISTING FILTER');
+            console.log(existingFilter);
             resetString = `${existingFilter[0].remove}&`;
+            searchBaseForDateRange = `${existingFilter[0].remove}&`;
         } else {
             resetString = searchBase;
         }
+        console.log('resetString');
+        console.log(resetString);
 
-        const searchString = `${searchBase}searchTerm=@type:Experiment ${this.state.activeFacet}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
+        const searchString = `${searchBaseForDateRange}searchTerm=@type:Experiment ${this.state.activeFacet}:[${this.state.startYear}-${this.state.startMonth}-01 TO ${this.state.endYear}-${this.state.endMonth}-${new Date(this.state.endYear, this.state.endMonth, 0).getDate()}]`;
 
-        const currentMonthSearch = `${searchBase}searchTerm=@type:Experiment ${field}:[${this.state.currentYear}-${this.state.currentMonth + 1}-01 TO ${this.state.currentYear}-${this.state.currentMonth + 1}-${new Date(this.state.currentYear, this.state.currentMonth + 1, 0).getDate()}]`;
+        const currentMonthSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear}-${this.state.currentMonth}-01 TO ${this.state.currentYear}-${this.state.currentMonth}-${new Date(this.state.currentYear, this.state.currentMonth, 0).getDate()}]`;
 
-        const currentYearSearch = `${searchBase}searchTerm=@type:Experiment ${field}:[${this.state.currentYear - 1}-${this.state.currentMonth + 1}-01 TO ${this.state.currentYear}-${this.state.currentMonth + 1}-${new Date(this.state.currentYear, this.state.currentMonth + 1, 0).getDate()}]`;
+        const currentYearSearch = `${searchBaseForDateRange}searchTerm=@type:Experiment ${field}:[${this.state.currentYear - 1}-${this.state.currentMonth}-01 TO ${this.state.currentYear}-${this.state.currentMonth}-${new Date(this.state.currentYear, this.state.currentMonth, 0).getDate()}]`;
 
         if ((activeFacet.terms.length && activeFacet.terms.some(term => term.doc_count)) || (field.charAt(field.length - 1) === '!')) {
             return (
